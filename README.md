@@ -25,7 +25,12 @@ go get github.com/k3a/html2text
 ## Usage
 
 ```go
-import "github.com/k3a/html2text"
+package main
+
+import (
+	"fmt"
+	"github.com/k3a/html2text"
+)
 
 func main() {
 	html := `<html><head><title>Good</title></head><body><strong>nice</strong> text</body>`
