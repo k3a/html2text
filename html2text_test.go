@@ -7,6 +7,8 @@ func TestHTML2Text(t *testing.T) {
 	Convey("HTML2Text should work", t, func() {
 
 		Convey("Links", func() {
+			So(HTML2Text(`<div></div>`), ShouldEqual, "")
+			So(HTML2Text(`<div>simple text</div>`), ShouldEqual, "simple text")
 			So(HTML2Text(`click <a href="test">here</a>`), ShouldEqual, "click test")
 			So(HTML2Text(`click <a class="x" href="test">here</a>`), ShouldEqual, "click test")
 			So(HTML2Text(`click <a href="ents/&apos;x&apos;">here</a>`), ShouldEqual, "click ents/'x'")
@@ -20,11 +22,16 @@ func TestHTML2Text(t *testing.T) {
 
 		Convey("HTML entities", func() {
 			So(HTML2Text(`two&nbsp;&nbsp;spaces`), ShouldEqual, "two  spaces")
-			So(HTML2Text(`two&nbsp;&nbsp;spaces`), ShouldEqual, "two  spaces")
+			So(HTML2Text(`&copy; 2017 K3A`), ShouldEqual, "© 2017 K3A")
+			So(HTML2Text("&lt;printtag&gt;"), ShouldEqual, "<printtag>")
+			So(HTML2Text(`Tom & Jerry is not an entity`), ShouldEqual, "Tom & Jerry is not an entity")
+			So(HTML2Text(`this &neither; as you see`), ShouldEqual, "this &neither; as you see")
 		})
 
 		Convey("Full HTML structure", func() {
 			So(HTML2Text(`<html><head><title>Good</title></head><body>x</body>`), ShouldEqual, "x")
+			So(HTML2Text(`we are not <script type="javascript"></script>interested in scripts`),
+				ShouldEqual, "we are not interested in scripts")
 		})
 	})
 }
