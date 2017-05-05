@@ -5,31 +5,35 @@
 
 # html2text
 
-Simple Go package to convert HTML to plain text.
+A simple Golang package to convert HTML to plain text.
+It converts HTML tags to text and also parses HTML entities into characters they represent.
+
+Some tests are installed as well.
+
+Fell free to publish a pull request if you have suggestions for improvement.
 
 ## Install
 ```bash
-	go get github.com/k3a/html2text
+go get github.com/k3a/html2text
 ```
 
 ## Usage
 
 ```go
-	import "github.com/k3a/html2text"
+import "github.com/k3a/html2text"
 
-	func main() {
-		html := `<html><head><title>Good</title></head><body><strong>nice</strong> text</body>`
-		
-		plain := html2text.HTML2Text(html)
-				  
-		fmt.Println(plain)
-	}
-
-	/*
-	Outputs:
+func main() {
+	html := `<html><head><title>Good</title></head><body><strong>nice</strong> text</body>`
 	
-		nice text
-	*/
+	plain := html2text.HTML2Text(html)
+			  
+	fmt.Println(plain)
+}
+
+/*	Outputs:
+
+	nice text
+*/
 
 ```
 
