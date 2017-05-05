@@ -24,6 +24,8 @@ func TestHTML2Text(t *testing.T) {
 			So(HTML2Text(`two&nbsp;&nbsp;spaces`), ShouldEqual, "two  spaces")
 			So(HTML2Text(`&copy; 2017 K3A`), ShouldEqual, "© 2017 K3A")
 			So(HTML2Text("&lt;printtag&gt;"), ShouldEqual, "<printtag>")
+			So(HTML2Text(`would you pay in &cent;, &pound;, &yen; or &euro;?`),
+				ShouldEqual, "would you pay in ¢, £, ¥ or €?")
 			So(HTML2Text(`Tom & Jerry is not an entity`), ShouldEqual, "Tom & Jerry is not an entity")
 			So(HTML2Text(`this &neither; as you see`), ShouldEqual, "this &neither; as you see")
 		})
