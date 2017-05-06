@@ -53,9 +53,6 @@ func HTMLEntitiesToText(htmlEntsText string) string {
 
 	for i, r := range htmlEntsText {
 		switch {
-		case r == '\n', r == '\r': // skip new lines
-			continue
-
 		case r == ';' && inEnt:
 			inEnt = false
 			continue
@@ -117,6 +114,9 @@ func HTML2Text(html string) string {
 		}
 
 		switch {
+		case r <= 0xD, r == 0x85, r == 0x2028, r == 0x2029: // skip new lines
+			continue
+
 		case r == ';' && inEnt: // end of html entity
 			inEnt = false
 			shouldOutput = true
