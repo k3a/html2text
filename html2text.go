@@ -160,7 +160,11 @@ func HTML2Text(html string) string {
 			shouldOutput = true
 			tagName := strings.ToLower(html[tagStart:i])
 
-			if tagName == "br" || tagName == "br/" {
+			if tagName == "/ul" {
+				outBuf.WriteString("\r\n")
+			} else if tagName == "li" || tagName == "li/" {
+				outBuf.WriteString("\r\n")
+			} else if tagName == "br" || tagName == "br/" {
 				// new line
 				outBuf.WriteString("\r\n")
 			} else if tagName == "p" || tagName == "/p" {

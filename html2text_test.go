@@ -1,7 +1,10 @@
 package html2text
 
-import "testing"
-import . "github.com/smartystreets/goconvey/convey"
+import (
+	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
+)
 
 func TestHTML2Text(t *testing.T) {
 	Convey("HTML2Text should work", t, func() {
@@ -34,6 +37,7 @@ func TestHTML2Text(t *testing.T) {
 				ShouldEqual, "would you pay in ¢, £, ¥ or €?")
 			So(HTML2Text(`Tom & Jerry is not an entity`), ShouldEqual, "Tom & Jerry is not an entity")
 			So(HTML2Text(`this &neither; as you see`), ShouldEqual, "this &neither; as you see")
+			So(HTML2Text(`list of items<ul><li>One</li><li>Two</li><li>Three</li></ul>`), ShouldEqual, "list of items\r\nOne\r\nTwo\r\nThree\r\n")
 		})
 
 		Convey("Full HTML structure", func() {
