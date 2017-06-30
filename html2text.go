@@ -9,6 +9,7 @@ import (
 var badTagnamesRE = regexp.MustCompile(`^(head|script|style|a)($|\s*)`)
 var linkTagRE = regexp.MustCompile(`a.*href=('([^']*?)'|"([^"]*?)")`)
 var badLinkHrefRE = regexp.MustCompile(`#|javascript:`)
+var headersRE = regexp.MustCompile(`^(\/)?h[1-6]`)
 
 func parseHTMLEntity(entName string) (string, bool) {
 	entName = strings.ToLower(entName)
@@ -160,7 +161,12 @@ func HTML2Text(html string) string {
 			shouldOutput = true
 			tagName := strings.ToLower(html[tagStart:i])
 
-			if tagName == "br" || tagName == "br/" {
+			if headersRE.MatchString(tagName) {
+				if canPrintNewline {
+					outBuf.WriteString("\r\n\r\n")
+				}
+				canPrintNewline = false
+			} else if tagName == "br" || tagName == "br/" {
 				// new line
 				outBuf.WriteString("\r\n")
 			} else if tagName == "p" || tagName == "/p" {
