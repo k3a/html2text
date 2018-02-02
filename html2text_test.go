@@ -26,7 +26,22 @@ func TestHTML2Text(t *testing.T) {
 		Convey("Line breaks", func() {
 			So(HTML2Text("should \nignore \r\nnew lines"), ShouldEqual, "should ignore new lines")
 			So(HTML2Text(`two<br>line<br/>breaks`), ShouldEqual, "two\r\nline\r\nbreaks")
-			So(HTML2Text(`<p>two</p><p>paragraphs</p>`), ShouldEqual, "two\r\nparagraphs")
+			So(HTML2Text(`<p>two</p><p>paragraphs</p>`), ShouldEqual, "two\r\n\r\nparagraphs")
+		})
+
+		Convey("Headings", func() {
+			So(HTML2Text("<h1>First</h1>main text"), ShouldEqual, "First\r\n\r\nmain text")
+			So(HTML2Text("First<h2>Second</h2>next section"), ShouldEqual, "First\r\n\r\nSecond\r\n\r\nnext section")
+			So(HTML2Text("<h2>Second</h2>next section"), ShouldEqual, "Second\r\n\r\nnext section")
+			So(HTML2Text("Second<h3>Third</h3>next section"), ShouldEqual, "Second\r\n\r\nThird\r\n\r\nnext section")
+			So(HTML2Text("<h3>Third</h3>next section"), ShouldEqual, "Third\r\n\r\nnext section")
+			So(HTML2Text("Third<h4>Fourth</h4>next section"), ShouldEqual, "Third\r\n\r\nFourth\r\n\r\nnext section")
+			So(HTML2Text("<h4>Fourth</h4>next section"), ShouldEqual, "Fourth\r\n\r\nnext section")
+			So(HTML2Text("Fourth<h5>Fifth</h5>next section"), ShouldEqual, "Fourth\r\n\r\nFifth\r\n\r\nnext section")
+			So(HTML2Text("<h5>Fifth</h5>next section"), ShouldEqual, "Fifth\r\n\r\nnext section")
+			So(HTML2Text("Fifth<h6>Sixth</h6>next section"), ShouldEqual, "Fifth\r\n\r\nSixth\r\n\r\nnext section")
+			So(HTML2Text("<h6>Sixth</h6>next section"), ShouldEqual, "Sixth\r\n\r\nnext section")
+			So(HTML2Text("<h7>Not Header</h7>next section"), ShouldEqual, "Not Headernext section")
 		})
 
 		Convey("HTML entities", func() {
@@ -38,6 +53,13 @@ func TestHTML2Text(t *testing.T) {
 			So(HTML2Text(`Tom & Jerry is not an entity`), ShouldEqual, "Tom & Jerry is not an entity")
 			So(HTML2Text(`this &neither; as you see`), ShouldEqual, "this &neither; as you see")
 			So(HTML2Text(`list of items<ul><li>One</li><li>Two</li><li>Three</li></ul>`), ShouldEqual, "list of items\r\nOne\r\nTwo\r\nThree\r\n")
+			So(HTML2Text(`fish &amp; chips`), ShouldEqual, "fish & chips")
+			So(HTML2Text(`&quot;I'm sorry, Dave. I'm afraid I can't do that.&quot; – HAL, 2001: A Space Odyssey`), ShouldEqual, "\"I'm sorry, Dave. I'm afraid I can't do that.\" – HAL, 2001: A Space Odyssey")
+			So(HTML2Text(`Google &reg;`), ShouldEqual, "Google ®")
+		})
+
+		Convey("Large Entity", func() {
+			So(HTMLEntitiesToText("&abcdefghij;"), ShouldEqual, "&abcdefghij;")
 		})
 
 		Convey("Full HTML structure", func() {
