@@ -23,7 +23,7 @@ func TestHTML2Text(t *testing.T) {
 		Convey("Line breaks", func() {
 			So(HTML2Text("should \nignore \r\nnew lines"), ShouldEqual, "should ignore new lines")
 			So(HTML2Text(`two<br>line<br/>breaks`), ShouldEqual, "two\r\nline\r\nbreaks")
-			So(HTML2Text(`<p>two</p><p>paragraphs</p>`), ShouldEqual, "two\r\nparagraphs")
+			So(HTML2Text(`<p>two</p><p>paragraphs</p>`), ShouldEqual, "two\r\n\r\nparagraphs")
 		})
 
 		Convey("Headings", func() {

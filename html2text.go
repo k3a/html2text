@@ -171,7 +171,7 @@ func HTML2Text(html string) string {
 				outBuf.WriteString("\r\n")
 			} else if tagName == "p" || tagName == "/p" {
 				if canPrintNewline {
-					outBuf.WriteString("\r\n")
+					outBuf.WriteString("\r\n\r\n")
 				}
 				canPrintNewline = false
 			} else if badTagnamesRE.MatchString(tagName) {
