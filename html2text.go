@@ -161,8 +161,12 @@ func HTML2Text(html string) string {
 			shouldOutput = true
 			tagName := strings.ToLower(html[tagStart:i])
 
-			if headersRE.MatchString(tagName) {
-				if canPrintNewline {
+			if tagName == "/ul" {
+				outBuf.WriteString("\r\n")
+			} else if tagName == "li" || tagName == "li/" {
+				outBuf.WriteString("\r\n")
+      } else if headersRE.MatchString(tagName) {
+			  if canPrintNewline {
 					outBuf.WriteString("\r\n\r\n")
 				}
 				canPrintNewline = false
