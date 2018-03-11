@@ -47,6 +47,9 @@ func main() {
 
 ```
 
+## Alternatives
+- https://github.com/jaytaylor/html2text
+
 ## License
 
 MIT
