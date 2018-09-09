@@ -12,38 +12,10 @@ var badLinkHrefRE = regexp.MustCompile(`#|javascript:`)
 var headersRE = regexp.MustCompile(`^(\/)?h[1-6]`)
 
 func parseHTMLEntity(entName string) (string, bool) {
-	entName = strings.ToLower(entName)
-
-	// possible entities
-	switch entName {
-	case "nbsp":
-		return " ", true
-	case "gt":
-		return ">", true
-	case "lt":
-		return "<", true
-	case "amp":
-		return "&", true
-	case "quot":
-		return "\"", true
-	case "apos":
-		return "'", true
-	case "cent":
-		return "¢", true
-	case "pound":
-		return "£", true
-	case "yen":
-		return "¥", true
-	case "euro":
-		return "€", true
-	case "copy":
-		return "©", true
-	case "reg":
-		return "®", true
-	default:
-		return "", false
+	if r, ok := entity[entName]; ok {
+		return string(r), true
 	}
-
+	return "", false
 }
 
 // HTMLEntitiesToText decodes HTML entities inside a provided
@@ -165,8 +137,8 @@ func HTML2Text(html string) string {
 				outBuf.WriteString("\r\n")
 			} else if tagName == "li" || tagName == "li/" {
 				outBuf.WriteString("\r\n")
-      } else if headersRE.MatchString(tagName) {
-			  if canPrintNewline {
+			} else if headersRE.MatchString(tagName) {
+				if canPrintNewline {
 					outBuf.WriteString("\r\n\r\n")
 				}
 				canPrintNewline = false
