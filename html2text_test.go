@@ -45,7 +45,7 @@ func TestHTML2Text(t *testing.T) {
 		})
 
 		Convey("HTML entities", func() {
-			So(HTML2Text(`two&nbsp;&nbsp;spaces`), ShouldEqual, "two  spaces")
+			So(HTML2Text(`two&nbsp;&nbsp;spaces`), ShouldEqual, "two  spaces")
 			So(HTML2Text(`&copy; 2017 K3A`), ShouldEqual, "© 2017 K3A")
 			So(HTML2Text("&lt;printtag&gt;"), ShouldEqual, "<printtag>")
 			So(HTML2Text(`would you pay in &cent;, &pound;, &yen; or &euro;?`),
