@@ -23,8 +23,10 @@ func TestHTML2Text(t *testing.T) {
 			So(HTML2Text(`some <div id="a" class="b">div</div>`), ShouldEqual, "some div")
 		})
 
-		Convey("Line breaks", func() {
+		Convey("Line breaks and spaces", func() {
+			So(HTML2Text("should    ignore more spaces"), ShouldEqual, "should ignore more spaces")
 			So(HTML2Text("should \nignore \r\nnew lines"), ShouldEqual, "should ignore new lines")
+			So(HTML2Text("a\nb\nc"), ShouldEqual, "a b c")
 			So(HTML2Text(`two<br>line<br/>breaks`), ShouldEqual, "two\r\nline\r\nbreaks")
 			So(HTML2Text(`<p>two</p><p>paragraphs</p>`), ShouldEqual, "two\r\n\r\nparagraphs")
 		})

@@ -67,6 +67,13 @@ func HTMLEntitiesToText(htmlEntsText string) string {
 	return outBuf.String()
 }
 
+func writeSpace(outBuf *bytes.Buffer) {
+	bts := outBuf.Bytes()
+	if len(bts) > 0 && bts[len(bts)-1] != ' ' {
+		outBuf.WriteString(" ")
+	}
+}
+
 // HTML2Text converts html into a text form
 func HTML2Text(html string) string {
 	inLen := len(html)
@@ -87,7 +94,10 @@ func HTML2Text(html string) string {
 		}
 
 		switch {
-		case r <= 0xD, r == 0x85, r == 0x2028, r == 0x2029: // skip new lines
+		// skip new lines and spaces adding a single space if not there yet
+		case r <= 0xD, r == 0x85, r == 0x2028, r == 0x2029, // new lines
+			r == ' ', r >= 0x2008 && r <= 0x200B: // spaces
+			writeSpace(outBuf)
 			continue
 
 		case r == ';' && inEnt: // end of html entity
