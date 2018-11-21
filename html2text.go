@@ -20,7 +20,6 @@ var headersRE = regexp.MustCompile(`^(\/)?h[1-6]`)
 var numericEntityRE = regexp.MustCompile(`^#([0-9]+)$`)
 
 func parseHTMLEntity(entName string) (string, bool) {
-
 	if r, ok := entity[entName]; ok {
 		return string(r), true
 	}
@@ -36,6 +35,8 @@ func parseHTMLEntity(entName string) (string, bool) {
 	return "", false
 }
 
+// SetUnixLbr with argument true sets Unix-style line-breaks in output ("\n")
+// with argument false sets Windows-style line-breaks in output ("\r\n", the default)
 func SetUnixLbr(b bool) {
 	if b {
 		lbr = UNIX_LBR
