@@ -16,7 +16,7 @@ It can be used for converting HTML emails into text.
 Some tests are installed as well.
 Uses semantic versioning and no breaking changes are planned.
 
-Fell free to publish a pull request if you have suggestions for improvement.
+Fell free to publish a pull request if you have suggestions for improvement but please note that the library can now be considered feature-complete and API stable. If you need more than this basic conversion, please use an alternative mentioned at the bottom.
 
 ## Install
 ```bash
@@ -51,7 +51,7 @@ func main() {
 To see all features, please look info `html2text_test.go`.
 
 ## Alternatives
-- https://github.com/jaytaylor/html2text
+- https://github.com/jaytaylor/html2text (more features)
 
 ## License
 
