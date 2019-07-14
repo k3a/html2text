@@ -64,11 +64,25 @@ func TestHTML2Text(t *testing.T) {
 			So(HTMLEntitiesToText("&abcdefghij;"), ShouldEqual, "&abcdefghij;")
 		})
 
+		Convey("Numeric HTML Entities", func() {
+			So(HTMLEntitiesToText("&#39;single quotes&#39; and &#52765;"), ShouldEqual, "'single quotes' and 츝")
+		})
+
 		Convey("Full HTML structure", func() {
 			So(HTML2Text(``), ShouldEqual, "")
 			So(HTML2Text(`<html><head><title>Good</title></head><body>x</body>`), ShouldEqual, "x")
 			So(HTML2Text(`we are not <script type="javascript"></script>interested in scripts`),
 				ShouldEqual, "we are not interested in scripts")
 		})
+
+		Convey("Switching Unix and Windows line breaks", func() {
+			SetUnixLbr(true)
+			So(HTML2Text(`two<br>line<br/>breaks`), ShouldEqual, "two\nline\nbreaks")
+			So(HTML2Text(`<p>two</p><p>paragraphs</p>`), ShouldEqual, "two\n\nparagraphs")
+			SetUnixLbr(false)
+			So(HTML2Text(`two<br>line<br/>breaks`), ShouldEqual, "two\r\nline\r\nbreaks")
+			So(HTML2Text(`<p>two</p><p>paragraphs</p>`), ShouldEqual, "two\r\n\r\nparagraphs")
+		})
+
 	})
 }

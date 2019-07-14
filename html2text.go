@@ -4,18 +4,45 @@ import (
 	"bytes"
 	"regexp"
 	"strings"
+	"strconv"
 )
 
+const (
+	WIN_LBR  = "\r\n"
+	UNIX_LBR = "\n"
+)
+
+var lbr = WIN_LBR
 var badTagnamesRE = regexp.MustCompile(`^(head|script|style|a)($|\s*)`)
 var linkTagRE = regexp.MustCompile(`a.*href=('([^']*?)'|"([^"]*?)")`)
 var badLinkHrefRE = regexp.MustCompile(`#|javascript:`)
 var headersRE = regexp.MustCompile(`^(\/)?h[1-6]`)
+var numericEntityRE = regexp.MustCompile(`^#([0-9]+)$`)
 
 func parseHTMLEntity(entName string) (string, bool) {
 	if r, ok := entity[entName]; ok {
 		return string(r), true
 	}
+
+	if match := numericEntityRE.FindStringSubmatch(entName); len(match) == 2 {
+		digits := match[1]
+		n, err := strconv.Atoi(digits)
+		if err == nil && (n == 9 || n == 10 || n == 13 || n > 31) {
+			return string(rune(n)), true
+		}
+	}
+
 	return "", false
+}
+
+// SetUnixLbr with argument true sets Unix-style line-breaks in output ("\n")
+// with argument false sets Windows-style line-breaks in output ("\r\n", the default)
+func SetUnixLbr(b bool) {
+	if b {
+		lbr = UNIX_LBR
+	} else {
+		lbr = WIN_LBR
+	}
 }
 
 // HTMLEntitiesToText decodes HTML entities inside a provided
@@ -96,7 +123,7 @@ func HTML2Text(html string) string {
 		switch {
 		// skip new lines and spaces adding a single space if not there yet
 		case r <= 0xD, r == 0x85, r == 0x2028, r == 0x2029, // new lines
-			r == ' ', r >= 0x2008 && r <= 0x200B: // spaces
+			r == ' ', r >= 0x2008 && r <= 0x200B:           // spaces
 			writeSpace(outBuf)
 			continue
 
@@ -144,20 +171,20 @@ func HTML2Text(html string) string {
 			tagName := strings.ToLower(html[tagStart:i])
 
 			if tagName == "/ul" {
-				outBuf.WriteString("\r\n")
+				outBuf.WriteString(lbr)
 			} else if tagName == "li" || tagName == "li/" {
-				outBuf.WriteString("\r\n")
+				outBuf.WriteString(lbr)
 			} else if headersRE.MatchString(tagName) {
 				if canPrintNewline {
-					outBuf.WriteString("\r\n\r\n")
+					outBuf.WriteString(lbr + lbr)
 				}
 				canPrintNewline = false
 			} else if tagName == "br" || tagName == "br/" {
 				// new line
-				outBuf.WriteString("\r\n")
+				outBuf.WriteString(lbr)
 			} else if tagName == "p" || tagName == "/p" {
 				if canPrintNewline {
-					outBuf.WriteString("\r\n\r\n")
+					outBuf.WriteString(lbr + lbr)
 				}
 				canPrintNewline = false
 			} else if badTagnamesRE.MatchString(tagName) {
