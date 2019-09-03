@@ -5,7 +5,7 @@
 
 # html2text
 
-A simple Golang package to convert HTML to plain text.
+A simple Golang package to convert HTML to plain text (without non-standard dependencies).
 
 It converts HTML tags to text and also parses HTML entities into characters they represent.
 A `<head>` section of the HTML document, as well as most other tags are stripped out but 
@@ -51,7 +51,7 @@ func main() {
 To see all features, please look info `html2text_test.go`.
 
 ## Alternatives
-- https://github.com/jaytaylor/html2text (more features)
+- https://github.com/jaytaylor/html2text (heavier, with more features)
 
 ## License
 
