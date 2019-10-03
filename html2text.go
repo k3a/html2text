@@ -3,8 +3,8 @@ package html2text
 import (
 	"bytes"
 	"regexp"
-	"strings"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -123,7 +123,7 @@ func HTML2Text(html string) string {
 		switch {
 		// skip new lines and spaces adding a single space if not there yet
 		case r <= 0xD, r == 0x85, r == 0x2028, r == 0x2029, // new lines
-			r == ' ', r >= 0x2008 && r <= 0x200B:           // spaces
+			r == ' ', r >= 0x2008 && r <= 0x200B: // spaces
 			writeSpace(outBuf)
 			continue
 
@@ -168,31 +168,32 @@ func HTML2Text(html string) string {
 
 		case r == '>': // end of a tag
 			shouldOutput = true
-			tagName := strings.ToLower(html[tagStart:i])
+			tag := html[tagStart:i]
+			tagNameLowercase := strings.ToLower(tag)
 
-			if tagName == "/ul" {
+			if tagNameLowercase == "/ul" {
 				outBuf.WriteString(lbr)
-			} else if tagName == "li" || tagName == "li/" {
+			} else if tagNameLowercase == "li" || tagNameLowercase == "li/" {
 				outBuf.WriteString(lbr)
-			} else if headersRE.MatchString(tagName) {
+			} else if headersRE.MatchString(tagNameLowercase) {
 				if canPrintNewline {
 					outBuf.WriteString(lbr + lbr)
 				}
 				canPrintNewline = false
-			} else if tagName == "br" || tagName == "br/" {
+			} else if tagNameLowercase == "br" || tagNameLowercase == "br/" {
 				// new line
 				outBuf.WriteString(lbr)
-			} else if tagName == "p" || tagName == "/p" {
+			} else if tagNameLowercase == "p" || tagNameLowercase == "/p" {
 				if canPrintNewline {
 					outBuf.WriteString(lbr + lbr)
 				}
 				canPrintNewline = false
-			} else if badTagnamesRE.MatchString(tagName) {
+			} else if badTagnamesRE.MatchString(tagNameLowercase) {
 				// unwanted block
 				badTagStackDepth++
 
 				// parse link href
-				m := linkTagRE.FindStringSubmatch(tagName)
+				m := linkTagRE.FindStringSubmatch(tag)
 				if len(m) == 4 {
 					link := m[2]
 					if len(link) == 0 {
@@ -203,8 +204,8 @@ func HTML2Text(html string) string {
 						outBuf.WriteString(HTMLEntitiesToText(link))
 					}
 				}
-			} else if len(tagName) > 0 && tagName[0] == '/' &&
-				badTagnamesRE.MatchString(tagName[1:]) {
+			} else if len(tagNameLowercase) > 0 && tagNameLowercase[0] == '/' &&
+				badTagnamesRE.MatchString(tagNameLowercase[1:]) {
 				// end of unwanted block
 				badTagStackDepth--
 			}

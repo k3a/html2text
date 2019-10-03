@@ -16,6 +16,7 @@ func TestHTML2Text(t *testing.T) {
 			So(HTML2Text(`click <a class="x" href="test">here</a>`), ShouldEqual, "click test")
 			So(HTML2Text(`click <a href="ents/&apos;x&apos;">here</a>`), ShouldEqual, "click ents/'x'")
 			So(HTML2Text(`click <a href="javascript:void(0)">here</a>`), ShouldEqual, "click ")
+			So(HTML2Text(`click <a href="http://bit.ly/2n4wXRs">news</a>`), ShouldEqual, "click http://bit.ly/2n4wXRs")
 		})
 
 		Convey("Inlines", func() {
