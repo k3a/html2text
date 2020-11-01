@@ -15,7 +15,7 @@ const (
 var lbr = WIN_LBR
 var badTagnamesRE = regexp.MustCompile(`^(head|script|style|a)($|\s*)`)
 var linkTagRE = regexp.MustCompile(`a.*href=('([^']*?)'|"([^"]*?)")`)
-var badLinkHrefRE = regexp.MustCompile(`#|javascript:`)
+var badLinkHrefRE = regexp.MustCompile(`javascript:`)
 var headersRE = regexp.MustCompile(`^(\/)?h[1-6]`)
 var numericEntityRE = regexp.MustCompile(`^#([0-9]+)$`)
 
@@ -124,12 +124,14 @@ func HTML2Text(html string) string {
 		// skip new lines and spaces adding a single space if not there yet
 		case r <= 0xD, r == 0x85, r == 0x2028, r == 0x2029, // new lines
 			r == ' ', r >= 0x2008 && r <= 0x200B: // spaces
-			writeSpace(outBuf)
+			if shouldOutput && badTagStackDepth == 0 && !inEnt {
+				//outBuf.WriteString(fmt.Sprintf("{DBG r:%c, inEnt:%t, tag:%s}", r, inEnt, html[tagStart:i]))
+				writeSpace(outBuf)
+			}
 			continue
 
 		case r == ';' && inEnt: // end of html entity
 			inEnt = false
-			shouldOutput = true
 			continue
 
 		case r == '&' && shouldOutput: // possible html entity
@@ -156,7 +158,6 @@ func HTML2Text(html string) string {
 				if ent, isEnt := parseHTMLEntity(entName); isEnt {
 					outBuf.WriteString(ent)
 					inEnt = true
-					shouldOutput = false
 					continue
 				}
 			}
