@@ -13,7 +13,7 @@ const (
 )
 
 var lbr = WIN_LBR
-var badTagnamesRE = regexp.MustCompile(`^(head|script|style|a)($|\s*)`)
+var badTagnamesRE = regexp.MustCompile(`^(head|script|style|a)($|\s+)`)
 var linkTagRE = regexp.MustCompile(`a.*href=('([^']*?)'|"([^"]*?)")`)
 var badLinkHrefRE = regexp.MustCompile(`javascript:`)
 var headersRE = regexp.MustCompile(`^(\/)?h[1-6]`)

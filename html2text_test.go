@@ -87,5 +87,11 @@ func TestHTML2Text(t *testing.T) {
 			So(HTML2Text(`<p>two</p><p>paragraphs</p>`), ShouldEqual, "two\r\n\r\nparagraphs")
 		})
 
+		Convey("Custom HTML Tags", func() {
+			So(HTML2Text(`<aa>hello</aa>`), ShouldEqual, "hello")
+			So(HTML2Text(`<aa >hello</aa>`), ShouldEqual, "hello")
+			So(HTML2Text(`<aa x="1">hello</aa>`), ShouldEqual, "hello")
+		})
+
 	})
 }
