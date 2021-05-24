@@ -61,6 +61,7 @@ func TestHTML2Text(t *testing.T) {
 			So(HTML2Text(`fish &amp; chips`), ShouldEqual, "fish & chips")
 			So(HTML2Text(`&quot;I'm sorry, Dave. I'm afraid I can't do that.&quot; – HAL, 2001: A Space Odyssey`), ShouldEqual, "\"I'm sorry, Dave. I'm afraid I can't do that.\" – HAL, 2001: A Space Odyssey")
 			So(HTML2Text(`Google &reg;`), ShouldEqual, "Google ®")
+			So(HTML2Text(`&#8268; decimal and hex entities supported &#x204D;`), ShouldEqual, "⁌ decimal and hex entities supported ⁍")
 		})
 
 		Convey("Large Entity", func() {
