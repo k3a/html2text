@@ -1,3 +1,25 @@
+// MIT License
+
+// Copyright (c) 2017 Mario K3A Hros (www.k3a.me)
+
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
 package html2text
 
 import (
@@ -57,7 +79,8 @@ func TestHTML2Text(t *testing.T) {
 				ShouldEqual, "would you pay in ¢, £, ¥ or €?")
 			So(HTML2Text(`Tom & Jerry is not an entity`), ShouldEqual, "Tom & Jerry is not an entity")
 			So(HTML2Text(`this &neither; as you see`), ShouldEqual, "this &neither; as you see")
-			So(HTML2Text(`list of items<ul><li>One</li><li>Two</li><li>Three</li></ul>`), ShouldEqual, "list of items\r\nOne\r\nTwo\r\nThree\r\n")
+			So(HTML2Text(`list of items<ul><li>One</li><li>Two</li><li>Three</li></ul>`), ShouldEqual, "list of items\r\n- One\r\n- Two\r\n- Three\r\n")
+			So(HTML2Text(`list of items<ol><li>One</li><li>Two</li><li>Three</li></ol>`), ShouldEqual, "list of items\r\n- One\r\n- Two\r\n- Three\r\n")
 			So(HTML2Text(`fish &amp; chips`), ShouldEqual, "fish & chips")
 			So(HTML2Text(`&quot;I'm sorry, Dave. I'm afraid I can't do that.&quot; – HAL, 2001: A Space Odyssey`), ShouldEqual, "\"I'm sorry, Dave. I'm afraid I can't do that.\" – HAL, 2001: A Space Odyssey")
 			So(HTML2Text(`Google &reg;`), ShouldEqual, "Google ®")
@@ -92,6 +115,13 @@ func TestHTML2Text(t *testing.T) {
 			So(HTML2Text(`<aa>hello</aa>`), ShouldEqual, "hello")
 			So(HTML2Text(`<aa >hello</aa>`), ShouldEqual, "hello")
 			So(HTML2Text(`<aa x="1">hello</aa>`), ShouldEqual, "hello")
+		})
+
+		Convey("Split strings longer than 250", func() {
+			So(HTML2Text(`<aa>UTCwUZ6sibdSsefMTrPg52Ows4uQSBXKjM0gJAvKxf7CeXYvKzf5lJd1I2nP3hXQ3soi9GZLYZmpumeIYlRIq0PJiDO0c9WHW6dU8OaHAFx1C5eF3QA22Cr6sVsWRbr1cBXPqtvWgfnM0KNgDgGKtg7afSLSIdTMNI6xNx8AFB0COO6zp17V2HWeCVVgwmWct5UEB1DlZG2m3TLfFtQ1hByB7fNgZNoRX67E4CdpDJezY7zoabasGDxFr2</aa>`),
+				ShouldEqual, "UTCwUZ6sibdSsefMTrPg52Ows4uQSBXKjM0gJAvKxf7CeXYvKzf5lJd1I2nP3hXQ3soi9GZLYZmpumeIYlRIq0PJiDO0c9WHW6dU8OaHAFx1C5eF3QA22Cr6sVsWRbr1cBXPqtvWgfnM0KNgDgGKtg7afSLSIdTMNI6xNx8AFB0COO6zp17V2HWeCVVgwmWct5UEB1DlZG2m3TLfFtQ1hByB7fNgZNoRX67E4CdpDJezY7zoabasGDxFr2")
+			So(HTML2Text(`<aa>UTCwUZ6sibdSsefMTrPg52Ows4uQSBXKjM0gJAvKxf7CeXYvKzf5lJd1I2nP3hXQ3soi9GZLYZmpumeIYlRIq0PJiDO0c9WHW6dU8OaHAFx1C5eF3QA22Cr6sVsWRbr1cBXPqtvWgfnM0KNgDgGKtg7afSLSIdTMNI6xNx8AFB0COO6zp17V2HWeCVVgwmWct5UEB1DlZG2m3TLfFtQ1hByB7fNgZNoRX67E4CdpDJezY7zoabasGDxFr2Rfino5IlkX1TyVRqx9dm2eTRdFAPW6xK4uPo8pVjmnqiQ4uOPtaJqkZhTwp60lX3fqrtzW1umqISS5Q6497tzBBghTwCoT2MC2GyRFJennWvvdjBsYQ9TQJbWfUxMLFKCG0PSis7Z3csFMJDwqd8kOImcrBvIShwm7nRa3zK16lZELCgNAtMVQPGpOTroS0o6w29tfX4C4S2KdzlCTiGu0QWO5Dmed4mIi8N2kml1dGNR6sHAoCqT5KWqE</aa>`),
+				ShouldEqual, "UTCwUZ6sibdSsefMTrPg52Ows4uQSBXKjM0gJAvKxf7CeXYvKzf5lJd1I2nP3hXQ3soi9GZLYZmpumeIYlRIq0PJiDO0c9WHW6dU8OaHAFx1C5eF3QA22Cr6sVsWRbr1cBXPqtvWgfnM0KNgDgGKtg7afSLSIdTMNI6xNx8AFB0COO6zp17V2HWeCVVgwmWct5UEB1DlZG2m3TLfFtQ1hByB7fNgZNoRX67E4CdpDJezY7zoabasGDxFr2\r\nRfino5IlkX1TyVRqx9dm2eTRdFAPW6xK4uPo8pVjmnqiQ4uOPtaJqkZhTwp60lX3fqrtzW1umqISS5Q6497tzBBghTwCoT2MC2GyRFJennWvvdjBsYQ9TQJbWfUxMLFKCG0PSis7Z3csFMJDwqd8kOImcrBvIShwm7nRa3zK16lZELCgNAtMVQPGpOTroS0o6w29tfX4C4S2KdzlCTiGu0QWO5Dmed4mIi8N2kml1dGNR6sHAoCqT5KWqE")
 		})
 
 	})

@@ -8,11 +8,14 @@ import (
 )
 
 const (
-	WIN_LBR  = "\r\n"
-	UNIX_LBR = "\n"
+	// WinLbr Windows line break
+	WinLbr = "\r\n"
+
+	// UnixLbr Unix line break
+	UnixLbr = "\n"
 )
 
-var lbr = WIN_LBR
+var lbr = WinLbr
 var badTagnamesRE = regexp.MustCompile(`^(head|script|style|a)($|\s+)`)
 var linkTagRE = regexp.MustCompile(`a.*href=('([^']*?)'|"([^"]*?)")`)
 var badLinkHrefRE = regexp.MustCompile(`javascript:`)
@@ -49,9 +52,9 @@ func parseHTMLEntity(entName string) (string, bool) {
 // with argument false sets Windows-style line-breaks in output ("\r\n", the default)
 func SetUnixLbr(b bool) {
 	if b {
-		lbr = UNIX_LBR
+		lbr = UnixLbr
 	} else {
-		lbr = WIN_LBR
+		lbr = WinLbr
 	}
 }
 
@@ -185,12 +188,16 @@ func HTML2Text(html string) string {
 			if tagNameLowercase == "/ul" {
 				outBuf.WriteString(lbr)
 			} else if tagNameLowercase == "li" || tagNameLowercase == "li/" {
-				outBuf.WriteString(lbr)
+				// UUIO-733 - Added dash for list items.
+				outBuf.WriteString(lbr + "- ")
 			} else if headersRE.MatchString(tagNameLowercase) {
 				if canPrintNewline {
 					outBuf.WriteString(lbr + lbr)
 				}
 				canPrintNewline = false
+			} else if tagNameLowercase == "/ol" {
+				// UUIO-733 Added newline when reaching the end of an ordered list.
+				outBuf.WriteString(lbr)
 			} else if tagNameLowercase == "br" || tagNameLowercase == "br/" {
 				// new line
 				outBuf.WriteString(lbr)
@@ -229,6 +236,24 @@ func HTML2Text(html string) string {
 			outBuf.WriteRune(r)
 		}
 	}
+	return splitOutOfBoundsLines(outBuf.String())
+}
 
-	return outBuf.String()
+/*
+	splitOutOfBoundsLines takes a single string and splits any characters
+	after the 250th character on to a new line.  The method does this
+	recursively on the whole string.
+*/
+func splitOutOfBoundsLines(formattedString string) (splitLine string) {
+	const MaxLineLength = 250
+	lines := strings.SplitAfter(formattedString, lbr)
+	splitLine = ""
+	for _, line := range lines {
+		if len(line) > MaxLineLength {
+			splitLine = line[:MaxLineLength] + lbr + splitOutOfBoundsLines(line[MaxLineLength:])
+		} else {
+			splitLine += line
+		}
+	}
+	return splitLine
 }
