@@ -52,6 +52,7 @@ To see all features, please look info `html2text_test.go`.
 
 ## Alternatives
 - https://github.com/jaytaylor/html2text (heavier, with more features)
+- https://git.alexwennerberg.com/nanohtml2text (rewrite of this module in Rust)
 
 ## License
 
