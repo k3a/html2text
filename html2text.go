@@ -13,7 +13,7 @@ const (
 )
 
 var lbr = WIN_LBR
-var badTagnamesRE = regexp.MustCompile(`^(head|script|style|a)($|\s+)`)
+var badTagnamesRE = regexp.MustCompile(`^(head|script|style)($|\s+)`)
 var linkTagRE = regexp.MustCompile(`a.*href=('([^']*?)'|"([^"]*?)")`)
 var badLinkHrefRE = regexp.MustCompile(`javascript:`)
 var headersRE = regexp.MustCompile(`^(\/)?h[1-6]`)
@@ -118,6 +118,8 @@ func HTML2Text(html string) string {
 	inEnt := false
 	badTagStackDepth := 0 // if == 1 it means we are inside <head>...</head>
 	shouldOutput := true
+	// maintain a stack of <a> tag href links and output it after the tag's inner text
+	hrefs := []string{}
 	// new line cannot be printed at the beginning or
 	// for <p> after a new line created by previous <p></p>
 	canPrintNewline := false
@@ -199,11 +201,18 @@ func HTML2Text(html string) string {
 					outBuf.WriteString(lbr + lbr)
 				}
 				canPrintNewline = false
-			} else if badTagnamesRE.MatchString(tagNameLowercase) {
-				// unwanted block
-				badTagStackDepth++
-
+			} else if tagNameLowercase == "/a" {
+				// end of link
+				// links can be empty can happen if the link matches the badLinkHrefRE
+				if len(hrefs) > 0 {
+					outBuf.WriteString(" <")
+					outBuf.WriteString(HTMLEntitiesToText(hrefs[0]))
+					outBuf.WriteString(">")
+					hrefs = hrefs[1:]
+				}
+			} else if linkTagRE.MatchString(tagNameLowercase) {
 				// parse link href
+				// add special handling for a tags
 				m := linkTagRE.FindStringSubmatch(tag)
 				if len(m) == 4 {
 					link := m[2]
@@ -212,9 +221,12 @@ func HTML2Text(html string) string {
 					}
 
 					if !badLinkHrefRE.MatchString(link) {
-						outBuf.WriteString(HTMLEntitiesToText(link))
+						hrefs = append(hrefs, link)
 					}
 				}
+			} else if badTagnamesRE.MatchString(tagNameLowercase) {
+				// unwanted block
+				badTagStackDepth++
 			} else if len(tagNameLowercase) > 0 && tagNameLowercase[0] == '/' &&
 				badTagnamesRE.MatchString(tagNameLowercase[1:]) {
 				// end of unwanted block

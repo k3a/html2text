@@ -12,13 +12,14 @@ func TestHTML2Text(t *testing.T) {
 		Convey("Links", func() {
 			So(HTML2Text(`<div></div>`), ShouldEqual, "")
 			So(HTML2Text(`<div>simple text</div>`), ShouldEqual, "simple text")
-			So(HTML2Text(`click <a href="test">here</a>`), ShouldEqual, "click test")
-			So(HTML2Text(`click <a class="x" href="test">here</a>`), ShouldEqual, "click test")
-			So(HTML2Text(`click <a href="ents/&apos;x&apos;">here</a>`), ShouldEqual, "click ents/'x'")
-			So(HTML2Text(`click <a href="javascript:void(0)">here</a>`), ShouldEqual, "click ")
-			So(HTML2Text(`click <a href="test"><span>here</span> or here</a>`), ShouldEqual, "click test")
-			So(HTML2Text(`click <a href="http://bit.ly/2n4wXRs">news</a>`), ShouldEqual, "click http://bit.ly/2n4wXRs")
-			So(HTML2Text(`<a rel="mw:WikiLink" href="/wiki/yet#English" title="yet">yet</a>, <a rel="mw:WikiLink" href="/wiki/not_yet#English" title="not yet">not yet</a>`), ShouldEqual, "/wiki/yet#English, /wiki/not_yet#English")
+			So(HTML2Text(`click <a href="test">here</a>`), ShouldEqual, "click here <test>")
+			So(HTML2Text(`click <a class="x" href="test">here</a>`), ShouldEqual, "click here <test>")
+			So(HTML2Text(`click <a href="ents/&apos;x&apos;">here</a>`), ShouldEqual, "click here <ents/'x'>")
+			So(HTML2Text(`click <a href="javascript:void(0)">here</a>`), ShouldEqual, "click here")
+			So(HTML2Text(`click <a href="test"><span>here</span> or here</a>`), ShouldEqual, "click here or here <test>")
+			So(HTML2Text(`click <a href="http://bit.ly/2n4wXRs">news</a>`), ShouldEqual, "click news <http://bit.ly/2n4wXRs>")
+			So(HTML2Text(`<a rel="mw:WikiLink" href="/wiki/yet#English" title="yet">yet</a>, <a rel="mw:WikiLink" href="/wiki/not_yet#English" title="not yet">not yet</a>`), ShouldEqual, "yet </wiki/yet#English>, not yet </wiki/not_yet#English>")
+			So(HTML2Text(`click <a href="one">here<a href="two"> or</a><span> here</span></a>`), ShouldEqual, "click here or <one> here <two>")
 		})
 
 		Convey("Inlines", func() {
