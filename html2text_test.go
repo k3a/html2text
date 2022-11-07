@@ -12,14 +12,25 @@ func TestHTML2Text(t *testing.T) {
 		Convey("Links", func() {
 			So(HTML2Text(`<div></div>`), ShouldEqual, "")
 			So(HTML2Text(`<div>simple text</div>`), ShouldEqual, "simple text")
-			So(HTML2Text(`click <a href="test">here</a>`), ShouldEqual, "click here <test>")
-			So(HTML2Text(`click <a class="x" href="test">here</a>`), ShouldEqual, "click here <test>")
-			So(HTML2Text(`click <a href="ents/&apos;x&apos;">here</a>`), ShouldEqual, "click here <ents/'x'>")
-			So(HTML2Text(`click <a href="javascript:void(0)">here</a>`), ShouldEqual, "click here")
-			So(HTML2Text(`click <a href="test"><span>here</span> or here</a>`), ShouldEqual, "click here or here <test>")
-			So(HTML2Text(`click <a href="http://bit.ly/2n4wXRs">news</a>`), ShouldEqual, "click news <http://bit.ly/2n4wXRs>")
-			So(HTML2Text(`<a rel="mw:WikiLink" href="/wiki/yet#English" title="yet">yet</a>, <a rel="mw:WikiLink" href="/wiki/not_yet#English" title="not yet">not yet</a>`), ShouldEqual, "yet </wiki/yet#English>, not yet </wiki/not_yet#English>")
-			So(HTML2Text(`click <a href="one">here<a href="two"> or</a><span> here</span></a>`), ShouldEqual, "click here or <one> here <two>")
+
+			// the original behavior
+			So(HTML2Text(`click <a href="test">here</a>`), ShouldEqual, "click test")
+			So(HTML2Text(`click <a class="x" href="test">here</a>`), ShouldEqual, "click test")
+			So(HTML2Text(`click <a href="ents/&apos;x&apos;">here</a>`), ShouldEqual, "click ents/'x'")
+			So(HTML2Text(`click <a href="javascript:void(0)">here</a>`), ShouldEqual, "click ")
+			So(HTML2Text(`click <a href="test"><span>here</span> or here</a>`), ShouldEqual, "click test")
+			So(HTML2Text(`click <a href="http://bit.ly/2n4wXRs">news</a>`), ShouldEqual, "click http://bit.ly/2n4wXRs")
+			So(HTML2Text(`<a rel="mw:WikiLink" href="/wiki/yet#English" title="yet">yet</a>, <a rel="mw:WikiLink" href="/wiki/not_yet#English" title="not yet">not yet</a>`), ShouldEqual, "/wiki/yet#English, /wiki/not_yet#English")
+
+			// with inner text
+			So(HTML2TextWithOptions(`click <a href="test">here</a>`, WithLinksInnerText()), ShouldEqual, "click here <test>")
+			So(HTML2TextWithOptions(`click <a class="x" href="test">here</a>`, WithLinksInnerText()), ShouldEqual, "click here <test>")
+			So(HTML2TextWithOptions(`click <a href="ents/&apos;x&apos;">here</a>`, WithLinksInnerText()), ShouldEqual, "click here <ents/'x'>")
+			So(HTML2TextWithOptions(`click <a href="javascript:void(0)">here</a>`, WithLinksInnerText()), ShouldEqual, "click here")
+			So(HTML2TextWithOptions(`click <a href="test"><span>here</span> or here</a>`, WithLinksInnerText()), ShouldEqual, "click here or here <test>")
+			So(HTML2TextWithOptions(`click <a href="http://bit.ly/2n4wXRs">news</a>`, WithLinksInnerText()), ShouldEqual, "click news <http://bit.ly/2n4wXRs>")
+			So(HTML2TextWithOptions(`<a rel="mw:WikiLink" href="/wiki/yet#English" title="yet">yet</a>, <a rel="mw:WikiLink" href="/wiki/not_yet#English" title="not yet">not yet</a>`, WithLinksInnerText()), ShouldEqual, "yet </wiki/yet#English>, not yet </wiki/not_yet#English>")
+			So(HTML2TextWithOptions(`click <a href="one">here<a href="two"> or</a><span> here</span></a>`, WithLinksInnerText()), ShouldEqual, "click here or <one> here <two>")
 		})
 
 		Convey("Inlines", func() {
@@ -80,13 +91,20 @@ func TestHTML2Text(t *testing.T) {
 				ShouldEqual, "we are not interested in scripts")
 		})
 
-		Convey("Switching Unix and Windows line breaks", func() {
+		Convey("Switching Unix and Windows line breaks (original behavior)", func() {
 			SetUnixLbr(true)
 			So(HTML2Text(`two<br>line<br/>breaks`), ShouldEqual, "two\nline\nbreaks")
 			So(HTML2Text(`<p>two</p><p>paragraphs</p>`), ShouldEqual, "two\n\nparagraphs")
 			SetUnixLbr(false)
 			So(HTML2Text(`two<br>line<br/>breaks`), ShouldEqual, "two\r\nline\r\nbreaks")
 			So(HTML2Text(`<p>two</p><p>paragraphs</p>`), ShouldEqual, "two\r\n\r\nparagraphs")
+		})
+
+		Convey("Switching Unix and Windows line breaks (new options)", func() {
+			So(HTML2TextWithOptions(`two<br>line<br/>breaks`, WithUnixLineBreaks()), ShouldEqual, "two\nline\nbreaks")
+			So(HTML2TextWithOptions(`<p>two</p><p>paragraphs</p>`, WithUnixLineBreaks()), ShouldEqual, "two\n\nparagraphs")
+			So(HTML2TextWithOptions(`two<br>line<br/>breaks`), ShouldEqual, "two\r\nline\r\nbreaks")
+			So(HTML2TextWithOptions(`<p>two</p><p>paragraphs</p>`), ShouldEqual, "two\r\n\r\nparagraphs")
 		})
 
 		Convey("Custom HTML Tags", func() {
