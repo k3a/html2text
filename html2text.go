@@ -16,7 +16,7 @@ const (
 
 var legacyLBR = WIN_LBR
 var badTagnamesRE = regexp.MustCompile(`^(head|script|style|a)($|\s+)`)
-var linkTagRE = regexp.MustCompile(`a.*href=('([^']*?)'|"([^"]*?)")`)
+var linkTagRE = regexp.MustCompile(`^(?i:a)(?:$|\s).*(?i:href)\s*=\s*('([^']*?)'|"([^"]*?)"|([^\s"'` + "`" + `=<>]+))`)
 var badLinkHrefRE = regexp.MustCompile(`javascript:`)
 var headersRE = regexp.MustCompile(`^(\/)?h[1-6]`)
 var numericEntityRE = regexp.MustCompile(`(?i)^#(x?[a-f0-9]+)$`)
@@ -261,10 +261,13 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 				// parse link href
 				// add special handling for a tags
 				m := linkTagRE.FindStringSubmatch(tag)
-				if len(m) == 4 {
+				if len(m) == 5 {
 					link := m[2]
 					if len(link) == 0 {
 						link = m[3]
+						if len(link) == 0 {
+							link = m[4]
+						}
 					}
 
 					if opts.linksInnerText && !badLinkHrefRE.MatchString(link) {
@@ -280,10 +283,13 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 				if !opts.linksInnerText {
 					// parse link href
 					m := linkTagRE.FindStringSubmatch(tag)
-					if len(m) == 4 {
+					if len(m) == 5 {
 						link := m[2]
 						if len(link) == 0 {
 							link = m[3]
+							if len(link) == 0 {
+								link = m[4]
+							}
 						}
 
 						if !badLinkHrefRE.MatchString(link) {
