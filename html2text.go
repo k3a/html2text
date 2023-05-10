@@ -24,6 +24,7 @@ var numericEntityRE = regexp.MustCompile(`(?i)^#(x?[a-f0-9]+)$`)
 type options struct {
 	lbr            string
 	linksInnerText bool
+	listSupport    bool
 }
 
 func newOptions() *options {
@@ -48,6 +49,13 @@ func WithUnixLineBreaks() Option {
 func WithLinksInnerText() Option {
 	return func(o *options) {
 		o.linksInnerText = true
+	}
+}
+
+// WithListSupport formats <ul> and <li> lists with dashes
+func WithListSupport() Option {
+	return func(o *options) {
+		o.listSupport = true
 	}
 }
 
@@ -231,10 +239,14 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 			tag := html[tagStart:i]
 			tagNameLowercase := strings.ToLower(tag)
 
-			if tagNameLowercase == "/ul" {
+			if tagNameLowercase == "/ul" || tagNameLowercase == "/ol" {
 				outBuf.WriteString(opts.lbr)
 			} else if tagNameLowercase == "li" || tagNameLowercase == "li/" {
-				outBuf.WriteString(opts.lbr)
+				if opts.listSupport {
+					outBuf.WriteString(opts.lbr + "- ")
+				} else {
+					outBuf.WriteString(opts.lbr)
+				}
 			} else if headersRE.MatchString(tagNameLowercase) {
 				if canPrintNewline {
 					outBuf.WriteString(opts.lbr + opts.lbr)

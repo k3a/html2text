@@ -102,6 +102,7 @@ func TestHTML2Text(t *testing.T) {
 			So(HTML2Text(``), ShouldEqual, "")
 			So(HTML2Text(`<html><head><title>Good</title></head><body>x</body>`), ShouldEqual, "x")
 			So(HTML2Text(`<html><head href="foo"><title>Good</title></head><body>x</body>`), ShouldEqual, "x")
+			So(HTML2Text(`<htMl><hEad><titLe>Good</Title></head><boDy>x</Body>`), ShouldEqual, "x")
 			So(HTML2Text(`we are not <script type="javascript"></script>interested in scripts`),
 				ShouldEqual, "we are not interested in scripts")
 		})
@@ -120,6 +121,15 @@ func TestHTML2Text(t *testing.T) {
 			So(HTML2TextWithOptions(`<p>two</p><p>paragraphs</p>`, WithUnixLineBreaks()), ShouldEqual, "two\n\nparagraphs")
 			So(HTML2TextWithOptions(`two<br>line<br/>breaks`), ShouldEqual, "two\r\nline\r\nbreaks")
 			So(HTML2TextWithOptions(`<p>two</p><p>paragraphs</p>`), ShouldEqual, "two\r\n\r\nparagraphs")
+		})
+
+		Convey("No list support by default (original behavior)", func() {
+			So(HTML2Text(`list of items<ul><li>One</li><li>Two</li><li>Three</li></ul>`), ShouldEqual, "list of items\r\nOne\r\nTwo\r\nThree\r\n")
+		})
+
+		Convey("Optional list support", func() {
+			So(HTML2TextWithOptions(`list of items<ul><li>One</li><li>Two</li><li>Three</li></ul>`, WithListSupport()), ShouldEqual, "list of items\r\n- One\r\n- Two\r\n- Three\r\n")
+			So(HTML2TextWithOptions(`list of items<ol><li>One</li><li>Two</li><li>Three</li></ol>`, WithListSupport()), ShouldEqual, "list of items\r\n- One\r\n- Two\r\n- Three\r\n")
 		})
 
 		Convey("Custom HTML Tags", func() {
