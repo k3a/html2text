@@ -128,8 +128,8 @@ func TestHTML2Text(t *testing.T) {
 		})
 
 		Convey("Optional list support", func() {
-			So(HTML2TextWithOptions(`list of items<ul><li>One</li><li>Two</li><li>Three</li></ul>`, WithListSupport()), ShouldEqual, "list of items\r\n- One\r\n- Two\r\n- Three\r\n")
-			So(HTML2TextWithOptions(`list of items<ol><li>One</li><li>Two</li><li>Three</li></ol>`, WithListSupport()), ShouldEqual, "list of items\r\n- One\r\n- Two\r\n- Three\r\n")
+			So(HTML2TextWithOptions(`list of items<ul><li>One</li><li>Two</li><li>Three</li></ul>`, WithListSupport()), ShouldEqual, "list of items\r\n - One\r\n - Two\r\n - Three\r\n")
+			So(HTML2TextWithOptions(`list of items<ol><li>One</li><li>Two</li><li>Three</li></ol>`, WithListSupport()), ShouldEqual, "list of items\r\n - One\r\n - Two\r\n - Three\r\n")
 		})
 
 		Convey("Custom HTML Tags", func() {

@@ -24,7 +24,7 @@ var numericEntityRE = regexp.MustCompile(`(?i)^#(x?[a-f0-9]+)$`)
 type options struct {
 	lbr            string
 	linksInnerText bool
-	listSupport    bool
+	listPrefix     string
 }
 
 func newOptions() *options {
@@ -52,11 +52,16 @@ func WithLinksInnerText() Option {
 	}
 }
 
-// WithListSupport formats <ul> and <li> lists with dashes
-func WithListSupport() Option {
+// WithListSupportPrefix formats <ul> and <li> lists with the specified prefix
+func WithListSupportPrefix(prefix string) Option {
 	return func(o *options) {
-		o.listSupport = true
+		o.listPrefix = prefix
 	}
+}
+
+// WithListSupport formats <ul> and <li> lists with " - " prefix
+func WithListSupport() Option {
+	return WithListSupportPrefix(" - ")
 }
 
 func parseHTMLEntity(entName string) (string, bool) {
@@ -242,8 +247,8 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 			if tagNameLowercase == "/ul" || tagNameLowercase == "/ol" {
 				outBuf.WriteString(opts.lbr)
 			} else if tagNameLowercase == "li" || tagNameLowercase == "li/" {
-				if opts.listSupport {
-					outBuf.WriteString(opts.lbr + "- ")
+				if opts.listPrefix != "" {
+					outBuf.WriteString(opts.lbr + opts.listPrefix)
 				} else {
 					outBuf.WriteString(opts.lbr)
 				}
