@@ -13,6 +13,10 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version-file: go.mod
+      - name: format check
+        run: gofmt -s -l .
+      - name: static check
+        run: go vet ./...
       - name: generate test coverage
         run: go test ./... -coverprofile=./cover.out -covermode=atomic
       - name: check test coverage
