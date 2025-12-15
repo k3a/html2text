@@ -25,12 +25,14 @@ type options struct {
 	lbr            string
 	linksInnerText bool
 	listPrefix     string
+	keepSpaces     bool
 }
 
 func newOptions() *options {
 	// apply defaults
 	return &options{
 		lbr: WIN_LBR,
+		keepSpaces: false,
 	}
 }
 
@@ -62,6 +64,13 @@ func WithListSupportPrefix(prefix string) Option {
 // WithListSupport formats <ul> and <li> lists with " - " prefix
 func WithListSupport() Option {
 	return WithListSupportPrefix(" - ")
+}
+
+// WithKeepSpaces keep spaces as they are
+func WithKeepSpaces() Option {
+	return func(o *options) {
+		o.keepSpaces = true
+	}
 }
 
 func parseHTMLEntity(entName string) (string, bool) {
@@ -193,14 +202,20 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 		}
 
 		switch {
-		// skip new lines and spaces adding a single space if not there yet
-		case r <= 0xD, r == 0x85, r == 0x2028, r == 0x2029, // new lines
-			r == ' ', r >= 0x2008 && r <= 0x200B: // spaces
+		// skip new lines adding a single space if not there yet
+		case r <= 0xD, r == 0x85, r == 0x2028, r == 0x2029: // new lines
 			if shouldOutput && badTagStackDepth == 0 && !inEnt {
 				//outBuf.WriteString(fmt.Sprintf("{DBG r:%c, inEnt:%t, tag:%s}", r, inEnt, html[tagStart:i]))
 				writeSpace(outBuf)
 			}
 			continue
+
+		// skip spaces adding a single space if not there yet
+		case r == ' ', r >= 0x2008 && r <= 0x200B: // spaces
+			if !opts.keepSpaces && shouldOutput && badTagStackDepth == 0 && !inEnt {
+				writeSpace(outBuf)
+				continue
+			}
 
 		case r == ';' && inEnt: // end of html entity
 			inEnt = false

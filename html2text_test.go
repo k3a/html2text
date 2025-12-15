@@ -138,5 +138,9 @@ func TestHTML2Text(t *testing.T) {
 			So(HTML2Text(`<aa x="1">hello</aa>`), ShouldEqual, "hello")
 		})
 
+		Convey("Keep spaces as they are", func() {
+			So(HTML2TextWithOptions("should not    ignore spaces", WithKeepSpaces()), ShouldEqual, "should not    ignore spaces")
+		})
+
 	})
 }
