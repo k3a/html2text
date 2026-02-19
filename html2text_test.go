@@ -127,6 +127,11 @@ func TestHTML2Text(t *testing.T) {
 			So(HTML2Text(`list of items<ul><li>One</li><li>Two</li><li>Three</li></ul>`), ShouldEqual, "list of items\r\nOne\r\nTwo\r\nThree\r\n")
 		})
 
+		Convey("List with classes", func() {
+			So(HTML2Text(`list of items<ul><li class="menu-item">One</li><li class="menu-item">Two</li><li class="menu-item">Three</li></ul>`), ShouldEqual, "list of items\r\nOne\r\nTwo\r\nThree\r\n")
+			So(HTML2Text(`list of items<ol><li class="menu-item">One</li><li class="menu-item">Two</li><li class="menu-item">Three</li></ol>`), ShouldEqual, "list of items\r\nOne\r\nTwo\r\nThree\r\n")
+		})
+
 		Convey("Optional list support", func() {
 			So(HTML2TextWithOptions(`list of items<ul><li>One</li><li>Two</li><li>Three</li></ul>`, WithListSupport()), ShouldEqual, "list of items\r\n - One\r\n - Two\r\n - Three\r\n")
 			So(HTML2TextWithOptions(`list of items<ol><li>One</li><li>Two</li><li>Three</li></ol>`, WithListSupport()), ShouldEqual, "list of items\r\n - One\r\n - Two\r\n - Three\r\n")
