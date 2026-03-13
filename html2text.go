@@ -31,7 +31,7 @@ type options struct {
 func newOptions() *options {
 	// apply defaults
 	return &options{
-		lbr: WIN_LBR,
+		lbr:        WIN_LBR,
 		keepSpaces: false,
 	}
 }
@@ -261,7 +261,7 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 
 			if tagNameLowercase == "/ul" || tagNameLowercase == "/ol" {
 				outBuf.WriteString(opts.lbr)
-			} else if tagNameLowercase == "li" || tagNameLowercase == "li/" {
+			} else if tagNameLowercase == "li" || tagNameLowercase == "li/" || strings.HasPrefix(tagNameLowercase, "li ") {
 				if opts.listPrefix != "" {
 					outBuf.WriteString(opts.lbr + opts.listPrefix)
 				} else {
