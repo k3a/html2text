@@ -48,6 +48,8 @@ func main() {
 
 ```
 
+Note: The output is plain text, do not embed the result back into HTML without escaping.
+
 To see all features, please look info `html2text_test.go`.
 
 ## Alternatives

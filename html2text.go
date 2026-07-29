@@ -175,7 +175,8 @@ func writeSpace(outBuf *bytes.Buffer) {
 	}
 }
 
-// HTML2Text converts html into a text form
+// HTML2Text converts html into a text form.
+// The output is plain text, do not embed the result back into HTML without escaping.
 func HTML2Text(html string) string {
 	var opts []Option
 	if legacyLBR == UNIX_LBR {
@@ -184,7 +185,8 @@ func HTML2Text(html string) string {
 	return HTML2TextWithOptions(html, opts...)
 }
 
-// HTML2TextWithOptions converts html into a text form with additional options
+// HTML2TextWithOptions converts html into a text form with additional options.
+// The output is plain text, do not embed the result back into HTML without escaping.
 func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 	opts := newOptions()
 	for _, opt := range reqOpts {
