@@ -91,7 +91,7 @@ func parseHTMLEntity(entName string) (string, bool) {
 			n, err = strconv.ParseInt(digits, 10, 64)
 		}
 
-		if err == nil && (n == 9 || n == 10 || n == 13 || n > 31) {
+		if err == nil && (n == 9 || n == 10 || n == 13 || (n > 31 && n <= 0x10FFFF)) {
 			return string(rune(n)), true
 		}
 	}
