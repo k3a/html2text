@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 // Line break constants
@@ -91,7 +93,12 @@ func parseHTMLEntity(entName string) (string, bool) {
 			n, err = strconv.ParseInt(digits, 10, 64)
 		}
 
-		if err == nil && (n == 9 || n == 10 || n == 13 || (n > 31 && n <= 0x10FFFF)) {
+		if err == nil {
+			// ignore null char, legacy override, out of range or lone surrogates
+			if n == 0 || (n >= 0x80 && n <= 0x9F) || n > utf8.MaxRune || (n >= 0xD800 && n <= 0xDFFF) {
+				return "", true
+			}
+
 			return string(rune(n)), true
 		}
 	}
@@ -132,28 +139,25 @@ func HTMLEntitiesToText(htmlEntsText string) string {
 			continue
 
 		case r == '&': //possible html entity
-			entName := ""
-			isEnt := false
+			start := i + 1
+			end := start
 
-			// parse the entity name - max 10 chars
-			chars := 0
-			for _, er := range htmlEntsText[i+1:] {
-				if er == ';' {
-					isEnt = true
-					break
-				} else {
-					entName += string(er)
-				}
-
-				chars++
-				if chars == 10 {
-					break
-				}
+			for end < len(htmlEntsText) && end-start < 10 && htmlEntsText[end] != ';' {
+				end++
 			}
+
+			isEnt := end < len(htmlEntsText) && htmlEntsText[end] == ';'
+			entName := htmlEntsText[start:end]
 
 			if isEnt {
 				if ent, isEnt := parseHTMLEntity(entName); isEnt {
-					outBuf.WriteString(ent)
+					for _, er := range ent {
+						if isCollapsibleWhitespace(er) {
+							outBuf.WriteString(" ")
+						} else {
+							outBuf.WriteRune(er)
+						}
+					}
 					inEnt = true
 					continue
 				}
@@ -161,7 +165,11 @@ func HTMLEntitiesToText(htmlEntsText string) string {
 		}
 
 		if !inEnt {
-			outBuf.WriteRune(r)
+			if isCollapsibleWhitespace(r) {
+				writeSpace(outBuf)
+			} else {
+				outBuf.WriteRune(r)
+			}
 		}
 	}
 
@@ -173,6 +181,37 @@ func writeSpace(outBuf *bytes.Buffer) {
 	if len(bts) > 0 && bts[len(bts)-1] != ' ' {
 		outBuf.WriteString(" ")
 	}
+}
+
+// isIgnoredChar returns true for control characters (except for HTML whitespace) and Unicode soft hyphen.
+func isIgnoredChar(r rune) bool {
+	if isHTMLWhitespace(r) {
+		return false
+	}
+	return unicode.IsControl(r) || r == 0xad
+}
+
+// isSpace returns true for runes which should be treated as space characters.
+func isSpace(r rune) bool {
+	switch {
+	case r == ' ', r >= 0x2008 && r <= 0x200B:
+		return true
+	}
+	return false
+}
+
+// isHTMLWhitespace returns true for runes representing a collabsible HTML whitespace.
+func isHTMLWhitespace(r rune) bool {
+	switch r {
+	case ' ', '\t', '\n', '\r', '\f':
+		return true
+	}
+	return false
+}
+
+// isCollapsibleWhitespace returns true if the rune is a HTML whitespace or a Unicode line or paragraph separator.
+func isCollapsibleWhitespace(r rune) bool {
+	return isHTMLWhitespace(r) || r == 0x2028 || r == 0x2029
 }
 
 // HTML2Text converts html into a text form.
@@ -213,19 +252,16 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 		}
 
 		switch {
-		// skip new lines adding a single space if not there yet
-		case r <= 0xD, r == 0x85, r == 0x2028, r == 0x2029: // new lines
-			if shouldOutput && badTagStackDepth == 0 && !inEnt {
-				//outBuf.WriteString(fmt.Sprintf("{DBG r:%c, inEnt:%t, tag:%s}", r, inEnt, html[tagStart:i]))
-				writeSpace(outBuf)
-			}
+		case isIgnoredChar(r):
 			continue
 
-		// skip spaces adding a single space if not there yet
-		case r == ' ', r >= 0x2008 && r <= 0x200B: // spaces
-			if !opts.keepSpaces && shouldOutput && badTagStackDepth == 0 && !inEnt {
-				writeSpace(outBuf)
-				continue
+		// new lines and spaces adding a single space if not there yet
+		case isCollapsibleWhitespace(r):
+			if shouldOutput && badTagStackDepth == 0 && !inEnt {
+				if !isSpace(r) || !opts.keepSpaces {
+					writeSpace(outBuf)
+					continue
+				}
 			}
 
 		case r == ';' && inEnt: // end of html entity
@@ -254,7 +290,14 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 
 			if isEnt {
 				if ent, isEnt := parseHTMLEntity(entName); isEnt {
-					outBuf.WriteString(ent)
+					for _, er := range ent {
+						if isIgnoredChar(er) {
+						} else if isCollapsibleWhitespace(er) {
+							writeSpace(outBuf)
+						} else {
+							outBuf.WriteRune(er)
+						}
+					}
 					inEnt = true
 					continue
 				}

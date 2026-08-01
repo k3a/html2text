@@ -23,7 +23,6 @@ func TestHTML2Text(t *testing.T) {
 			So(HTML2Text(`click <a href      =     test>here</a>`), ShouldEqual, "click test")
 			So(HTML2Text(`click <a href      =     test target="_blank">here</a>`), ShouldEqual, "click test")
 			So(HTML2Text(`click <a class="x" href="test">here</a>`), ShouldEqual, "click test")
-			So(HTML2Text(`click <a href="ents/&apos;x&apos;">here</a>`), ShouldEqual, "click ents/'x'")
 			So(HTML2Text(`click <a href="javascript:void(0)">here</a>`), ShouldEqual, "click ")
 			So(HTML2Text(`click <a href="JaVaScRiPt:alert(1)">here</a>`), ShouldEqual, "click ")
 			So(HTML2Text(`click <a href="&#106;avascript:alert(1)">here</a>`), ShouldEqual, "click ")
@@ -100,10 +99,19 @@ func TestHTML2Text(t *testing.T) {
 
 		Convey("Numeric HTML Entities", func() {
 			So(HTMLEntitiesToText("&#39;single quotes&#39; and &#52765;"), ShouldEqual, "'single quotes' and 츝")
+			So(HTML2Text(`a null&#0; character is ignored`), ShouldEqual, "a null character is ignored")
+			So(HTML2Text(`a control&#x1b; character is ignored`), ShouldEqual, "a control character is ignored")
+			So(HTML2Text(`space entities&#x20;&#x20;collapsed correctly`), ShouldEqual, "space entities collapsed correctly")
+		})
+
+		Convey("HTML Entities in hrefs", func() {
+			So(HTML2TextWithOptions(`click <a href="ents/control&#9;char">here</a>`, WithLinksInnerText()), ShouldEqual, "click here <ents/control char>")
+			So(HTML2Text(`<a href="http://example.com/`+"\r\nBcc: victim@example.com"+`">link</a>`), ShouldEqual, "http://example.com/ Bcc: victim@example.com")
 		})
 
 		Convey("Full HTML structure", func() {
 			So(HTML2Text(``), ShouldEqual, "")
+			So(HTML2Text("Bad chars\x1b ignored"), ShouldEqual, "Bad chars ignored")
 			So(HTML2Text(`<html><head><title>Good</title></head><body>x</body>`), ShouldEqual, "x")
 			So(HTML2Text(`<html><head href="foo"><title>Good</title></head><body>x</body>`), ShouldEqual, "x")
 			So(HTML2Text(`<htMl><hEad><titLe>Good</Title></head><boDy>x</Body>`), ShouldEqual, "x")
