@@ -17,7 +17,7 @@ const (
 var legacyLBR = WIN_LBR
 var badTagnamesRE = regexp.MustCompile(`^(head|script|style|a)$`)
 var linkTagRE = regexp.MustCompile(`^(?i:a)(?:$|\s).*(?i:href)\s*=\s*('([^']*?)'|"([^"]*?)"|([^\s"'` + "`" + `=<>]+))`)
-var badLinkHrefRE = regexp.MustCompile(`javascript:`)
+var badLinkHrefRE = regexp.MustCompile(`(?i)javascript:`)
 var headersRE = regexp.MustCompile(`^(\/)?h[1-6]`)
 var numericEntityRE = regexp.MustCompile(`(?i)^#(x?[a-f0-9]+)$`)
 
@@ -314,7 +314,7 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 						}
 					}
 
-					if opts.linksInnerText && !badLinkHrefRE.MatchString(link) {
+					if opts.linksInnerText && !badLinkHrefRE.MatchString(HTMLEntitiesToText(link)) {
 						hrefs = append(hrefs, link)
 					}
 				}
@@ -336,7 +336,7 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 							}
 						}
 
-						if !badLinkHrefRE.MatchString(link) {
+						if !badLinkHrefRE.MatchString(HTMLEntitiesToText(link)) {
 							outBuf.WriteString(HTMLEntitiesToText(link))
 						}
 					}
