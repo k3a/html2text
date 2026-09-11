@@ -457,7 +457,9 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 			} else if len(tagNameLowercase) > 0 && tagNameLowercase[0] == '/' &&
 				badTagnamesRE.MatchString(tagNameLowercase[1:]) {
 				// end of unwanted block
-				badTagStackDepth--
+				if badTagStackDepth > 0 {
+					badTagStackDepth--
+				}
 			}
 			continue
 

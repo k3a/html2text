@@ -255,5 +255,17 @@ func TestHTML2Text(t *testing.T) {
 			})
 		})
 
+		Convey("Unmatched closing tags (negative depth flaw fix)", func() {
+			Convey("Unmatched closing tags do not suppress subsequent text", func() {
+				So(HTML2Text(`</head>Hello world`), ShouldEqual, "Hello world")
+				So(HTML2Text(`</a>Hello world`), ShouldEqual, "Hello world")
+			})
+
+			Convey("Unmatched closing tags followed by bad tags do not leak contents", func() {
+				So(HTML2Text(`</script><script>sensitive_token</script>Hello world`), ShouldEqual, "Hello world")
+				So(HTML2Text(`</head><head><title>sensitive title</title></head>Hello world`), ShouldEqual, "Hello world")
+			})
+		})
+
 	})
 }
