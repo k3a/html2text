@@ -2,6 +2,7 @@ package html2text
 
 import (
 	"bytes"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -19,15 +20,16 @@ const (
 var legacyLBR = WIN_LBR
 var badTagnamesRE = regexp.MustCompile(`^(head|script|style|a)$`)
 var linkTagRE = regexp.MustCompile(`^(?i:a)(?:$|\s).*(?i:href)\s*=\s*('([^']*?)'|"([^"]*?)"|([^\s"'` + "`" + `=<>]+))`)
-var badLinkHrefRE = regexp.MustCompile(`(?i)javascript:`)
 var headersRE = regexp.MustCompile(`^(\/)?h[1-6]`)
 var numericEntityRE = regexp.MustCompile(`(?i)^#(x?[a-f0-9]+)$`)
+var defaultAllowedSchemes = []string{"http", "https", "mailto", "tel", "sms"}
 
 type options struct {
 	lbr            string
 	linksInnerText bool
 	listPrefix     string
 	keepSpaces     bool
+	allowedSchemes []string
 }
 
 func newOptions() *options {
@@ -72,6 +74,15 @@ func WithListSupport() Option {
 func WithKeepSpaces() Option {
 	return func(o *options) {
 		o.keepSpaces = true
+	}
+}
+
+// WithAllowedURLSchemes restricts valid URL schemes (example: []string{"http", "https", "mailto"}).
+// URLs with invalid schemes are ignored.
+// If this option is not used, default allowed schemes are http, https, and mailto.
+func WithAllowedURLSchemes(s []string) Option {
+	return func(o *options) {
+		o.allowedSchemes = s
 	}
 }
 
@@ -126,9 +137,7 @@ func SetUnixLbr(b bool) {
 	}
 }
 
-// HTMLEntitiesToText decodes HTML entities inside a provided
-// string and returns decoded text
-func HTMLEntitiesToText(htmlEntsText string) string {
+func htmlEntitiesToText(htmlEntsText string, hrefContext bool) string {
 	outBuf := bytes.NewBufferString("")
 	inEnt := false
 
@@ -152,7 +161,7 @@ func HTMLEntitiesToText(htmlEntsText string) string {
 			if isEnt {
 				if ent, isEnt := parseHTMLEntity(entName); isEnt {
 					for _, er := range ent {
-						if isCollapsibleWhitespace(er) {
+						if !hrefContext && isCollapsibleWhitespace(er) {
 							outBuf.WriteString(" ")
 						} else {
 							outBuf.WriteRune(er)
@@ -165,7 +174,7 @@ func HTMLEntitiesToText(htmlEntsText string) string {
 		}
 
 		if !inEnt {
-			if isCollapsibleWhitespace(r) {
+			if !hrefContext && isCollapsibleWhitespace(r) {
 				writeSpace(outBuf)
 			} else {
 				outBuf.WriteRune(r)
@@ -174,6 +183,12 @@ func HTMLEntitiesToText(htmlEntsText string) string {
 	}
 
 	return outBuf.String()
+}
+
+// HTMLEntitiesToText decodes HTML entities inside a provided
+// string and returns decoded text
+func HTMLEntitiesToText(htmlEntsText string) string {
+	return htmlEntitiesToText(htmlEntsText, false)
 }
 
 func writeSpace(outBuf *bytes.Buffer) {
@@ -214,6 +229,57 @@ func isCollapsibleWhitespace(r rune) bool {
 	return isHTMLWhitespace(r) || r == 0x2028 || r == 0x2029
 }
 
+// isZeroWidth returns true for zero-width spaces and invisible format characters.
+func isZeroWidth(r rune) bool {
+	switch r {
+	case '\u200B', '\u200C', '\u200D', '\u2060', '\uFEFF':
+		return true
+	default:
+		return unicode.Is(unicode.Cf, r)
+	}
+}
+
+func parseAndSanitizeHref(link string) string {
+	decoded := strings.TrimSpace(htmlEntitiesToText(link, true))
+	return strings.Map(func(r rune) rune {
+		switch {
+		case r == ' ':
+			return r
+		case r == '\\':
+			return '/'
+		case unicode.IsSpace(r) || isIgnoredChar(r) || isZeroWidth(r):
+			return -1
+		default:
+			return r
+		}
+
+	}, decoded)
+}
+
+// isBadHref checks whether a link href is a valid and allowed URL.
+func isBadHref(link string, allowedSchemes []string) bool {
+	u, err := url.Parse(link)
+	if err != nil {
+		return true
+	}
+
+	if u.Scheme == "" {
+		return false
+	}
+
+	if allowedSchemes == nil {
+		allowedSchemes = defaultAllowedSchemes
+	}
+
+	for _, sch := range allowedSchemes {
+		if strings.EqualFold(u.Scheme, strings.TrimSuffix(sch, ":")) {
+			return false
+		}
+	}
+
+	return true
+}
+
 // HTML2Text converts html into a text form.
 // The output is plain text, do not embed the result back into HTML without escaping.
 func HTML2Text(html string) string {
@@ -237,7 +303,7 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 	inEnt := false
 	badTagStackDepth := 0 // if == 1 it means we are inside <head>...</head>
 	shouldOutput := true
-	// maintain a stack of <a> tag href links and output it after the tag's inner text (for opts.linksInnerText only)
+	// maintain a stack of sanitized <a> tag href links with html entities decoded
 	hrefs := []string{}
 	// new line cannot be printed at the beginning or
 	// for <p> after a new line created by previous <p></p>
@@ -340,7 +406,7 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 				// links can be empty can happen if the link matches the badLinkHrefRE
 				if len(hrefs) > 0 {
 					outBuf.WriteString(" <")
-					outBuf.WriteString(HTMLEntitiesToText(hrefs[0]))
+					outBuf.WriteString(hrefs[0])
 					outBuf.WriteString(">")
 					hrefs = hrefs[1:]
 				}
@@ -357,7 +423,9 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 						}
 					}
 
-					if opts.linksInnerText && !badLinkHrefRE.MatchString(HTMLEntitiesToText(link)) {
+					link = parseAndSanitizeHref(link)
+
+					if opts.linksInnerText && !isBadHref(link, opts.allowedSchemes) {
 						hrefs = append(hrefs, link)
 					}
 				}
@@ -379,8 +447,10 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 							}
 						}
 
-						if !badLinkHrefRE.MatchString(HTMLEntitiesToText(link)) {
-							outBuf.WriteString(HTMLEntitiesToText(link))
+						link = parseAndSanitizeHref(link)
+
+						if !isBadHref(link, opts.allowedSchemes) {
+							outBuf.WriteString(link)
 						}
 					}
 				}

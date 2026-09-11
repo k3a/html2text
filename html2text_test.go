@@ -79,6 +79,7 @@ func TestHTML2Text(t *testing.T) {
 		})
 
 		Convey("HTML entities", func() {
+			So(HTMLEntitiesToText("collapsible&#x20;  and explicit&nbsp;&nbsp;spaces"), ShouldEqual, "collapsible and explicit  spaces")
 			So(HTML2Text(`two&nbsp;&nbsp;spaces`), ShouldEqual, "two  spaces")
 			So(HTML2Text(`&copy; 2017 K3A`), ShouldEqual, "© 2017 K3A")
 			So(HTML2Text("&lt;printtag&gt;"), ShouldEqual, "<printtag>")
@@ -105,8 +106,9 @@ func TestHTML2Text(t *testing.T) {
 		})
 
 		Convey("HTML Entities in hrefs", func() {
-			So(HTML2TextWithOptions(`click <a href="ents/control&#9;char">here</a>`, WithLinksInnerText()), ShouldEqual, "click here <ents/control char>")
-			So(HTML2Text(`<a href="http://example.com/`+"\r\nBcc: victim@example.com"+`">link</a>`), ShouldEqual, "http://example.com/ Bcc: victim@example.com")
+			So(HTML2TextWithOptions(`click <a href="./filenamewith  spaces">here</a>`, WithLinksInnerText()), ShouldEqual, "click here <./filenamewith  spaces>")
+			So(HTML2TextWithOptions(`click <a href="ents/control&#9;char">here</a>`, WithLinksInnerText()), ShouldEqual, "click here <ents/controlchar>")
+			So(HTML2Text(`<a href="http://example.com/`+"\r\nBcc: victim@example.com"+`">link</a>`), ShouldEqual, "http://example.com/Bcc: victim@example.com")
 		})
 
 		Convey("Full HTML structure", func() {
@@ -158,6 +160,99 @@ func TestHTML2Text(t *testing.T) {
 
 		Convey("Keep spaces as they are", func() {
 			So(HTML2TextWithOptions("should not    ignore spaces", WithKeepSpaces()), ShouldEqual, "should not    ignore spaces")
+		})
+
+		Convey("URL scheme validation and dangerous schemes blocked by default", func() {
+			Convey("Garbage and unsafe URLs are ignored", func() {
+				So(HTML2Text(`<a href=":">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="jav&#x09;ascript:alert(1)">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="http://example.com/&#x1b;ok">click</a>`), ShouldEqual, "http://example.com/ok")
+				So(HTML2Text(`<a href="http://example.com/\x1b[2J\x1b[H">click</a>`), ShouldEqual, "http://example.com//x1b[2J/x1b[H")
+			})
+
+			Convey("Dangerous schemes blocked by default", func() {
+				So(HTML2Text(`<a href="data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="DATA:text/html,test">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="vbscript:msgbox(1)">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="VBSCRIPT:msgbox(1)">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="file:///etc/passwd">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="FILE:///etc/passwd">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="blob:http://example.com/uuid">click</a>`), ShouldEqual, "")
+			})
+
+			Convey("WithLinksInnerText suppresses dangerous schemes but keeps inner text", func() {
+				So(HTML2TextWithOptions(`<a href="data:text/html,test">click here</a>`, WithLinksInnerText()), ShouldEqual, "click here")
+				So(HTML2TextWithOptions(`<a href="vbscript:msgbox(1)">click here</a>`, WithLinksInnerText()), ShouldEqual, "click here")
+				So(HTML2TextWithOptions(`<a href="file:///etc/passwd">click here</a>`, WithLinksInnerText()), ShouldEqual, "click here")
+			})
+
+			Convey("Safe schemes allowed by default", func() {
+				So(HTML2Text(`<a href="http://example.com">site</a>`), ShouldEqual, "http://example.com")
+				So(HTML2Text(`<a href="https://example.com">site</a>`), ShouldEqual, "https://example.com")
+				So(HTML2Text(`<a href="mailto:test@example.com">email</a>`), ShouldEqual, "mailto:test@example.com")
+				So(HTML2Text(`<a href="tel:+33639981234">phone</a>`), ShouldEqual, "tel:+33639981234")
+				So(HTML2TextWithOptions(`Send <a href="sms:+33639981234">SMS</a> for more info`, WithLinksInnerText()), ShouldEqual, "Send SMS <sms:+33639981234> for more info")
+			})
+
+			Convey("Relative URLs allowed by default", func() {
+				So(HTML2Text(`<a href="/path/to/page">page</a>`), ShouldEqual, "/path/to/page")
+				So(HTML2Text(`<a href="relative/path">page</a>`), ShouldEqual, "relative/path")
+				So(HTML2Text(`<a href="#section">anchor</a>`), ShouldEqual, "#section")
+			})
+
+			Convey("Configured custom schemes allowed", func() {
+				So(HTML2TextWithOptions(`<a href="ourapp://link">open app</a>`, WithAllowedURLSchemes([]string{"ourapp"})), ShouldEqual, "ourapp://link")
+			})
+		})
+
+		Convey("URLs with whitespaces and zero-width characters are ignored", func() {
+			Convey("Non-breaking spaces ignored: \\u00A0 (&nbsp;), \\u202F, \\u2007", func() {
+				So(HTML2Text(`<a href="java&nbsp;script:alert(1)">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="&nbsp;javascript:alert(1)">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="java&#160;script:alert(1)">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="java&#xa0;script:alert(1)">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="java&#x202f;script:alert(1)">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="java&#x2007;script:alert(1)">click</a>`), ShouldEqual, "")
+			})
+
+			Convey("Zero-width spaces ignored: \\u200B (&#8203;), \\u200C, \\u200D, \\u2060, \\uFEFF", func() {
+				So(HTML2Text(`<a href="jav&#8203;ascript:alert(1)">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="jav&#x200b;ascript:alert(1)">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="jav&#8204;ascript:alert(1)">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="jav&#x200c;ascript:alert(1)">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="jav&#8205;ascript:alert(1)">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="jav&#x200d;ascript:alert(1)">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="jav&#8288;ascript:alert(1)">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="jav&#x2060;ascript:alert(1)">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="jav&#65279;ascript:alert(1)">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="jav&#xfeff;ascript:alert(1)">click</a>`), ShouldEqual, "")
+			})
+
+			Convey("Other Unicode spaces ignored: \\u1680, \\u2000–\\u200A, \\u3000", func() {
+				So(HTML2Text(`<a href="java&#x1680;script:alert(1)">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="java&#x2000;script:alert(1)">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="java&#x2001;script:alert(1)">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="java&#x2008;script:alert(1)">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="java&#x3000;script:alert(1)">click</a>`), ShouldEqual, "")
+			})
+
+			Convey("Whitespace or zero-width before colon is invalid", func() {
+				So(HTML2Text(`<a href="javascript :alert(1)">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="javascript&nbsp;:alert(1)">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="javascript&#8203;:alert(1)">click</a>`), ShouldEqual, "")
+			})
+
+			Convey("Dangerous schemes obfuscated with unicode spaces / zero-width characters are ignored", func() {
+				So(HTML2Text(`<a href="d&nbsp;ata:text/html,abc">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="v&#8203;bscript:msgbox(1)">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="f&#xfeff;ile:///etc/passwd">click</a>`), ShouldEqual, "")
+			})
+
+			Convey("WithLinksInnerText retains inner text when bad href is suppressed", func() {
+				So(HTML2TextWithOptions(`<a href="java&nbsp;script:alert(1)">click here</a>`, WithLinksInnerText()), ShouldEqual, "click here")
+				So(HTML2TextWithOptions(`<a href="jav&#8203;ascript:alert(1)">click here</a>`, WithLinksInnerText()), ShouldEqual, "click here")
+				So(HTML2TextWithOptions(`<a href="jav&#x0a;ascript:alert(1)">click</a>`, WithLinksInnerText()), ShouldEqual, "click")
+			})
 		})
 
 	})
