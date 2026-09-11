@@ -47,7 +47,7 @@ func TestHTML2Text(t *testing.T) {
 			So(HTML2TextWithOptions(`click <a href="test"><span>here</span> or here</a>`, WithLinksInnerText()), ShouldEqual, "click here or here <test>")
 			So(HTML2TextWithOptions(`click <a href="http://bit.ly/2n4wXRs">news</a>`, WithLinksInnerText()), ShouldEqual, "click news <http://bit.ly/2n4wXRs>")
 			So(HTML2TextWithOptions(`<a rel="mw:WikiLink" href="/wiki/yet#English" title="yet">yet</a>, <a rel="mw:WikiLink" href="/wiki/not_yet#English" title="not yet">not yet</a>`, WithLinksInnerText()), ShouldEqual, "yet </wiki/yet#English>, not yet </wiki/not_yet#English>")
-			So(HTML2TextWithOptions(`click <a href="one">here<a href="two"> or</a><span> here</span></a>`, WithLinksInnerText()), ShouldEqual, "click here or <one> here <two>")
+			So(HTML2TextWithOptions(`click <a href="one">here<a href="two"> or</a><span> here</span></a>`, WithLinksInnerText()), ShouldEqual, "click here or <two> here <one>")
 		})
 
 		Convey("Inlines", func() {
@@ -264,6 +264,34 @@ func TestHTML2Text(t *testing.T) {
 			Convey("Unmatched closing tags followed by bad tags do not leak contents", func() {
 				So(HTML2Text(`</script><script>sensitive_token</script>Hello world`), ShouldEqual, "Hello world")
 				So(HTML2Text(`</head><head><title>sensitive title</title></head>Hello world`), ShouldEqual, "Hello world")
+			})
+		})
+
+		Convey("Anchor tag state desynchronization in WithLinksInnerText mode", func() {
+			Convey("Anchors without href do not drop subsequent text", func() {
+				So(HTML2TextWithOptions(`<a id="top"></a>Hello world`, WithLinksInnerText()), ShouldEqual, "Hello world")
+				So(HTML2TextWithOptions(`<a></a>Hello world`, WithLinksInnerText()), ShouldEqual, "Hello world")
+			})
+
+			Convey("Inner text of anchors without href is retained", func() {
+				So(HTML2TextWithOptions(`<a id="top">Anchor</a> Hello world`, WithLinksInnerText()), ShouldEqual, "Anchor Hello world")
+				So(HTML2TextWithOptions(`<a>Anchor</a> Hello world`, WithLinksInnerText()), ShouldEqual, "Anchor Hello world")
+			})
+
+			Convey("Inner text is retained for mix of anchors with and without href", func() {
+				So(HTML2TextWithOptions(`<a id="section-1">Section 1</a> <a href="http://example.com">Link</a> and <a name="section-2">Section 2</a>`, WithLinksInnerText()), ShouldEqual, "Section 1 Link <http://example.com> and Section 2")
+			})
+
+			Convey("Unclosed anchors without href do not drop subsequent text", func() {
+				So(HTML2TextWithOptions(`<a id="top">Hello world`, WithLinksInnerText()), ShouldEqual, "Hello world")
+			})
+
+			Convey("Bad tags remain suppressed when anchors are present", func() {
+				So(HTML2TextWithOptions(`<head><a id="foo"></a><title>sensitive title</title></head>Hello world`, WithLinksInnerText()), ShouldEqual, "Hello world")
+			})
+
+			Convey("Unmatched closing </a> in WithLinksInnerText mode won't suppress subsequent text", func() {
+				So(HTML2TextWithOptions(`</a>Hello world`, WithLinksInnerText()), ShouldEqual, "Hello world")
 			})
 		})
 

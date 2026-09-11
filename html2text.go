@@ -18,8 +18,8 @@ const (
 )
 
 var legacyLBR = WIN_LBR
-var badTagnamesRE = regexp.MustCompile(`^(head|script|style|a)$`)
-var linkTagRE = regexp.MustCompile(`^(?i:a)(?:$|\s).*(?i:href)\s*=\s*('([^']*?)'|"([^"]*?)"|([^\s"'` + "`" + `=<>]+))`)
+var badTagnamesRE = regexp.MustCompile(`^(head|script|style)$`)
+var hrefAttrRE = regexp.MustCompile(`(?i)\bhref\s*=\s*('([^']*?)'|"([^"]*?)"|([^\s"'` + "`" + `=<>]+))`)
 var headersRE = regexp.MustCompile(`^(\/)?h[1-6]`)
 var numericEntityRE = regexp.MustCompile(`(?i)^#(x?[a-f0-9]+)$`)
 var defaultAllowedSchemes = []string{"http", "https", "mailto", "tel", "sms"}
@@ -401,19 +401,38 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 					outBuf.WriteString(opts.lbr + opts.lbr)
 				}
 				canPrintNewline = false
-			} else if opts.linksInnerText && tagNameLowercase == "/a" {
+			} else if tagNameLowercase == "/a" {
 				// end of link
-				// links can be empty can happen if the link matches the badLinkHrefRE
-				if len(hrefs) > 0 {
-					outBuf.WriteString(" <")
-					outBuf.WriteString(hrefs[0])
-					outBuf.WriteString(">")
-					hrefs = hrefs[1:]
+				// links can be empty can happen if isBadHref matches the link
+				if !opts.linksInnerText {
+					// end of unwanted block
+					if badTagStackDepth > 0 {
+						badTagStackDepth--
+					}
 				}
-			} else if opts.linksInnerText && linkTagRE.MatchString(tagContentLowercase) {
+
+				if len(hrefs) > 0 {
+					last := len(hrefs) - 1
+					if hrefs[last] != "" {
+						if opts.linksInnerText {
+							outBuf.WriteString(" <")
+							outBuf.WriteString(hrefs[last])
+							outBuf.WriteString(">")
+						} else {
+							outBuf.WriteString(hrefs[last])
+						}
+					}
+					hrefs = hrefs[:last]
+				}
+			} else if tagNameLowercase == "a" {
+				// start of link
+				if !opts.linksInnerText {
+					// unwanted block
+					badTagStackDepth++
+				}
+
 				// parse link href
-				// add special handling for a tags
-				m := linkTagRE.FindStringSubmatch(tag)
+				m := hrefAttrRE.FindStringSubmatch(tag)
 				if len(m) == 5 {
 					link := m[2]
 					if len(link) == 0 {
@@ -425,35 +444,17 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 
 					link = parseAndSanitizeHref(link)
 
-					if opts.linksInnerText && !isBadHref(link, opts.allowedSchemes) {
+					if !isBadHref(link, opts.allowedSchemes) {
 						hrefs = append(hrefs, link)
+					} else {
+						hrefs = append(hrefs, "") // maintain stack alignment
 					}
+				} else {
+					hrefs = append(hrefs, "") // maintain stack alignment
 				}
 			} else if badTagnamesRE.MatchString(tagNameLowercase) {
 				// unwanted block
 				badTagStackDepth++
-
-				// if link inner text preservation is not enabled
-				// and the current tag is a link tag, parse its href and output that
-				if !opts.linksInnerText {
-					// parse link href
-					m := linkTagRE.FindStringSubmatch(tag)
-					if len(m) == 5 {
-						link := m[2]
-						if len(link) == 0 {
-							link = m[3]
-							if len(link) == 0 {
-								link = m[4]
-							}
-						}
-
-						link = parseAndSanitizeHref(link)
-
-						if !isBadHref(link, opts.allowedSchemes) {
-							outBuf.WriteString(link)
-						}
-					}
-				}
 			} else if len(tagNameLowercase) > 0 && tagNameLowercase[0] == '/' &&
 				badTagnamesRE.MatchString(tagNameLowercase[1:]) {
 				// end of unwanted block
