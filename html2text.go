@@ -307,7 +307,7 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 	inLen := len(html)
 	tagStart := 0
 	inEnt := false
-	badTagStackDepth := 0 // if == 1 it means we are inside <head>...</head>
+	var badTagStack []string // stack of open tag names for <head>, <script>, <style>, <a>
 	shouldOutput := true
 	hrefs := []string{}     // maintain a stack of sanitized <a> tag href links with html entities decoded
 	tagQuoteChar := rune(0) // tracks quote context inside tags (0 = no quote, '"' or '\'' when inside quoted attr value)
@@ -326,10 +326,9 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 		switch {
 		case isIgnoredChar(r):
 			continue
-
 		// new lines and spaces adding a single space if not there yet
 		case isCollapsibleWhitespace(r):
-			if shouldOutput && badTagStackDepth == 0 && !inEnt {
+			if shouldOutput && len(badTagStack) == 0 && !inEnt {
 				if !isSpace(r) || !opts.keepSpaces {
 					writeSpace(outBuf)
 					continue
@@ -438,9 +437,9 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 				// end of link
 				// links can be empty can happen if isBadHref matches the link
 				if !opts.linksInnerText {
-					// end of unwanted block
-					if badTagStackDepth > 0 {
-						badTagStackDepth--
+					// end of unwanted block - only pop if <a> is on top
+					if len(badTagStack) > 0 && badTagStack[len(badTagStack)-1] == "a" {
+						badTagStack = badTagStack[:len(badTagStack)-1]
 					}
 				}
 
@@ -461,7 +460,7 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 				// start of link
 				if !opts.linksInnerText {
 					// unwanted block
-					badTagStackDepth++
+					badTagStack = append(badTagStack, "a")
 				}
 
 				// parse link href
@@ -487,19 +486,20 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 				}
 			} else if badTagnamesRE.MatchString(tagNameLowercase) {
 				// unwanted block
-				badTagStackDepth++
+				badTagStack = append(badTagStack, tagNameLowercase)
 			} else if len(tagNameLowercase) > 0 && tagNameLowercase[0] == '/' &&
 				badTagnamesRE.MatchString(tagNameLowercase[1:]) {
-				// end of unwanted block
-				if badTagStackDepth > 0 {
-					badTagStackDepth--
+				// end of unwanted block - only pop if matching tag is on top
+				openingTag := tagNameLowercase[1:]
+				if len(badTagStack) > 0 && badTagStack[len(badTagStack)-1] == openingTag {
+					badTagStack = badTagStack[:len(badTagStack)-1]
 				}
 			}
 			continue
 
 		} // switch end
 
-		if shouldOutput && badTagStackDepth == 0 && !inEnt {
+		if shouldOutput && len(badTagStack) == 0 && !inEnt {
 			canPrintNewline = true
 			outBuf.WriteRune(r)
 		}

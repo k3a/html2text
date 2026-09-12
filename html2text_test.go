@@ -311,6 +311,23 @@ func TestHTML2Text(t *testing.T) {
 			So(HTML2Text(`<a data-href="https://attacker.com" href="https://legit.com">click</a>`), ShouldEqual, "https://legit.com")
 		})
 
+		Convey("Mismatched closing tags do not break content suppression", func() {
+			Convey("Single mismatched closing tags of different types", func() {
+				So(HTML2Text(`<head><title>Public</title></a><script>api_key = "AIzaSyD-CONFIDENTIAL-KEY";</script></head>body`), ShouldEqual, "body")
+				So(HTML2Text(`<script></style>var secret = 42;</script>visible`), ShouldEqual, "visible")
+				So(HTML2Text(`<style></head>.hidden { color: red; }</style>visible`), ShouldEqual, "visible")
+				So(HTML2Text(`<head></script><title>hidden</title></head>visible`), ShouldEqual, "visible")
+			})
+
+			Convey("Multiple extraneous closing tags inside a single bad block", func() {
+				So(HTML2Text(`<head></a></style></script><title>still hidden</title></head>visible`), ShouldEqual, "visible")
+			})
+
+			Convey("WithLinksInnerText: mismatched </head> inside <a> does not pop stack", func() {
+				So(HTML2TextWithOptions(`<a href="http://x.com"></head>click</a> visible`, WithLinksInnerText()), ShouldEqual, "click <http://x.com> visible")
+			})
+		})
+
 		Convey("Tag boundary protection in quoted attribute strings", func() {
 			Convey("Style + single and double-quoted attr with <", func() {
 				So(HTML2Text(`<style title="<">hidden</style>`), ShouldEqual, "")
