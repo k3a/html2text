@@ -17,12 +17,14 @@ const (
 	UNIX_LBR = "\n"
 )
 
-var legacyLBR = WIN_LBR
-var badTagnamesRE = regexp.MustCompile(`^(head|script|style)$`)
-var hrefAttrRE = regexp.MustCompile(`(?i)\bhref\s*=\s*('([^']*?)'|"([^"]*?)"|([^\s"'` + "`" + `=<>]+))`)
-var headersRE = regexp.MustCompile(`^(\/)?h[1-6]`)
-var numericEntityRE = regexp.MustCompile(`(?i)^#(x?[a-f0-9]+)$`)
-var defaultAllowedSchemes = []string{"http", "https", "mailto", "tel", "sms"}
+var (
+	legacyLBR             = WIN_LBR
+	badTagnamesRE         = regexp.MustCompile(`^(head|script|style)$`)
+	hrefAttrRE            = regexp.MustCompile(`(?i)\bhref\s*=\s*('([^']*?)'|"([^"]*?)"|([^\s"'` + "`" + `=<>]+))`)
+	headersRE             = regexp.MustCompile(`^(\/)?h[1-6]`)
+	numericEntityRE       = regexp.MustCompile(`(?i)^#(x?[a-f0-9]+)$`)
+	defaultAllowedSchemes = []string{"http", "https", "mailto", "tel", "sms"}
+)
 
 type options struct {
 	lbr            string
@@ -384,13 +386,15 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 				outBuf.WriteString(opts.lbr)
 			} else if tagNameLowercase == "li" || tagNameLowercase == "li/" {
 				if opts.listPrefix != "" {
-					outBuf.WriteString(opts.lbr + opts.listPrefix)
+					outBuf.WriteString(opts.lbr)
+					outBuf.WriteString(opts.listPrefix)
 				} else {
 					outBuf.WriteString(opts.lbr)
 				}
 			} else if headersRE.MatchString(tagNameLowercase) {
 				if canPrintNewline {
-					outBuf.WriteString(opts.lbr + opts.lbr)
+					outBuf.WriteString(opts.lbr)
+					outBuf.WriteString(opts.lbr)
 				}
 				canPrintNewline = false
 			} else if tagNameLowercase == "br" || tagNameLowercase == "br/" {
@@ -398,7 +402,8 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 				outBuf.WriteString(opts.lbr)
 			} else if tagNameLowercase == "p" || tagNameLowercase == "/p" {
 				if canPrintNewline {
-					outBuf.WriteString(opts.lbr + opts.lbr)
+					outBuf.WriteString(opts.lbr)
+					outBuf.WriteString(opts.lbr)
 				}
 				canPrintNewline = false
 			} else if tagNameLowercase == "/a" {
