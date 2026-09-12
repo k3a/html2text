@@ -150,3 +150,20 @@ func TestHTML2Text(t *testing.T) {
 
 	})
 }
+
+func TestTagWhitespace(t *testing.T) {
+	for _, separator := range []string{" ", "\t", "\n", "\r", "\f"} {
+		t.Run(separator, func(t *testing.T) {
+			for _, tc := range []struct{ input, want string }{
+				{"<script" + separator + `type="text/javascript">hidden</script>visible`, "visible"},
+				{"<style" + separator + `type="text/css">hidden</style>visible`, "visible"},
+				{"<a" + separator + `href="https://example.com">label</a> after`, "https://example.com after"},
+				{"before<br" + separator + `class="break">after`, "before\nafter"},
+			} {
+				if got := HTML2TextWithOptions(tc.input, WithUnixLineBreaks()); got != tc.want {
+					t.Errorf("%q: got %q, want %q", tc.input, got, tc.want)
+				}
+			}
+		})
+	}
+}

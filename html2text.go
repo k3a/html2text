@@ -101,7 +101,8 @@ func parseHTMLEntity(entName string) (string, bool) {
 
 func firstWord(s string) string {
 	for i := 0; i < len(s); i++ {
-		if s[i] == ' ' {
+		switch s[i] {
+		case ' ', '\t', '\n', '\r', '\f':
 			return s[:i]
 		}
 	}
