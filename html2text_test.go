@@ -295,5 +295,21 @@ func TestHTML2Text(t *testing.T) {
 			})
 		})
 
+		Convey("Recognize HTML whitespace after tag names", func() {
+			for _, separator := range []string{" ", "\t", "\n", "\r", "\f"} {
+				for _, tc := range []struct{ input, want string }{
+					{"<script" + separator + `type="text/javascript">hidden</script>visible`, "visible"},
+					{"<style" + separator + `type="text/css">hidden</style>visible`, "visible"},
+					{"<a" + separator + `href="https://example.com">label</a> after`, "https://example.com after"},
+					{"before<br" + separator + `class="break">after`, "before\nafter"},
+				} {
+					So(HTML2TextWithOptions(tc.input, WithUnixLineBreaks()), ShouldEqual, tc.want)
+				}
+			}
+
+			So(HTML2Text(`<script/x>alert("LEAKED_SECRET_SCRIPT")</script>`), ShouldEqual, "")
+			So(HTML2Text(`<a data-href="https://attacker.com" href="https://legit.com">click</a>`), ShouldEqual, "https://legit.com")
+		})
 	})
+
 }

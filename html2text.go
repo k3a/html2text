@@ -20,7 +20,7 @@ const (
 var (
 	legacyLBR             = WIN_LBR
 	badTagnamesRE         = regexp.MustCompile(`^(head|script|style)$`)
-	hrefAttrRE            = regexp.MustCompile(`(?i)\bhref\s*=\s*('([^']*?)'|"([^"]*?)"|([^\s"'` + "`" + `=<>]+))`)
+	hrefAttrRE            = regexp.MustCompile(`(?i)[ \t\n\r\f]href\s*=\s*('([^']*?)'|"([^"]*?)"|([^\s"'` + "`" + `=<>]+))`)
 	headersRE             = regexp.MustCompile(`^(\/)?h[1-6]`)
 	numericEntityRE       = regexp.MustCompile(`(?i)^#(x?[a-f0-9]+)$`)
 	defaultAllowedSchemes = []string{"http", "https", "mailto", "tel", "sms"}
@@ -119,9 +119,13 @@ func parseHTMLEntity(entName string) (string, bool) {
 	return "", false
 }
 
-func firstWord(s string) string {
-	for i := 0; i < len(s); i++ {
-		if s[i] == ' ' {
+func parseTagName(s string) string {
+	for i, r := range s {
+		switch r {
+		case ' ', '\t', '\n', '\r', '\f':
+			return s[:i]
+		}
+		if i > 0 && r == '/' { // tags like <br/>
 			return s[:i]
 		}
 	}
@@ -380,7 +384,7 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 			shouldOutput = true
 			tag := html[tagStart:i]
 			tagContentLowercase := strings.ToLower(tag)
-			tagNameLowercase := firstWord(tagContentLowercase)
+			tagNameLowercase := parseTagName(tagContentLowercase)
 
 			if tagNameLowercase == "/ul" || tagNameLowercase == "/ol" {
 				outBuf.WriteString(opts.lbr)
