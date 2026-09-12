@@ -310,6 +310,42 @@ func TestHTML2Text(t *testing.T) {
 			So(HTML2Text(`<script/x>alert("LEAKED_SECRET_SCRIPT")</script>`), ShouldEqual, "")
 			So(HTML2Text(`<a data-href="https://attacker.com" href="https://legit.com">click</a>`), ShouldEqual, "https://legit.com")
 		})
-	})
 
+		Convey("Tag boundary protection in quoted attribute strings", func() {
+			Convey("Style + single and double-quoted attr with <", func() {
+				So(HTML2Text(`<style title="<">hidden</style>`), ShouldEqual, "")
+				So(HTML2Text(`<style title='<'>hidden</style>`), ShouldEqual, "")
+			})
+
+			Convey("> inside quoted attribute does not close tag", func() {
+				So(HTML2Text(`<style data-x="foo>bar">hidden</style>`), ShouldEqual, "")
+				So(HTML2Text(`<script data-y="1>2">hidden</script>`), ShouldEqual, "")
+			})
+
+			Convey("Single quote inside double-quoted attr must not toggle quote state", func() {
+				So(HTML2Text(`<style title="it's safe">hidden</style>`), ShouldEqual, "")
+			})
+
+			Convey("Double quote inside single-quoted attr must not toggle quote state", func() {
+				So(HTML2Text(`<style title='it "is safe"'>hidden</style>`), ShouldEqual, "")
+			})
+
+			Convey("Multiple < inside attribute values", func() {
+				So(HTML2Text(`<style data-x="<<<">hidden</style>`), ShouldEqual, "")
+				So(HTML2Text(`<style data-x="<a<b<c">hidden</style>`), ShouldEqual, "")
+			})
+
+			Convey("Both < and > inside attribute values (both guarded)", func() {
+				So(HTML2Text(`<style data-test="<b>">hidden</style>`), ShouldEqual, "")
+			})
+
+			Convey("<a> tags with attributes parsed correctly when < in href", func() {
+				So(HTML2Text(`<a href="http://example.com?a=1<b>c">link</a>`), ShouldEqual, "http://example.com?a=1<b>c")
+			})
+
+			Convey("Normal text works", func() {
+				So(HTML2Text(`"Quotes" in 'normal' text works as expected`), ShouldEqual, `"Quotes" in 'normal' text works as expected`)
+			})
+		})
+	})
 }

@@ -309,8 +309,8 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 	inEnt := false
 	badTagStackDepth := 0 // if == 1 it means we are inside <head>...</head>
 	shouldOutput := true
-	// maintain a stack of sanitized <a> tag href links with html entities decoded
-	hrefs := []string{}
+	hrefs := []string{}     // maintain a stack of sanitized <a> tag href links with html entities decoded
+	tagQuoteChar := rune(0) // tracks quote context inside tags (0 = no quote, '"' or '\'' when inside quoted attr value)
 	// new line cannot be printed at the beginning or
 	// for <p> after a new line created by previous <p></p>
 	canPrintNewline := false
@@ -375,12 +375,36 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 				}
 			}
 
+		case r == '"': // double-quote in attribute
+			if !shouldOutput {
+				if tagQuoteChar == '"' {
+					tagQuoteChar = 0
+				} else if tagQuoteChar == 0 {
+					tagQuoteChar = '"'
+				}
+			}
+
+		case r == '\'': // single-quote in attribute
+			if !shouldOutput {
+				if tagQuoteChar == '\'' {
+					tagQuoteChar = 0
+				} else if tagQuoteChar == 0 {
+					tagQuoteChar = '\''
+				}
+			}
+
 		case r == '<': // start of a tag
+			if tagQuoteChar != 0 {
+				continue // inside attribute quotes, not a real tag start
+			}
 			tagStart = i + 1
 			shouldOutput = false
 			continue
 
 		case r == '>': // end of a tag
+			if tagQuoteChar != 0 {
+				continue // inside attribute quotes, not a real tag end
+			}
 			shouldOutput = true
 			tag := html[tagStart:i]
 			tagContentLowercase := strings.ToLower(tag)
