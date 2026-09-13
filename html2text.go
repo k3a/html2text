@@ -22,7 +22,8 @@ var (
 	badTagnamesRE         = regexp.MustCompile(`^(head|script|style)$`)
 	hrefAttrRE            = regexp.MustCompile(`(?i)[ \t\n\r\f]href\s*=\s*('([^']*?)'|"([^"]*?)"|([^\s"'` + "`" + `=<>]+))`)
 	headersRE             = regexp.MustCompile(`^(\/)?h[1-6]`)
-	numericEntityRE       = regexp.MustCompile(`(?i)^#(x?[a-f0-9]+)$`)
+	entityRE              = regexp.MustCompile(`(?i)^(#(?:x[a-f0-9]+|[0-9]+)|[a-zA-Z]{1,32});?`)
+	numericEntityRE       = regexp.MustCompile(`(?i)^#(x?[a-f0-9]+)`)
 	defaultAllowedSchemes = []string{"http", "https", "mailto", "tel", "sms"}
 )
 
@@ -100,12 +101,13 @@ func parseHTMLEntity(entName string) (string, bool) {
 			digits = match[1]
 		)
 
+		base := 10
 		if digits != "" && (digits[0] == 'x' || digits[0] == 'X') {
-			n, err = strconv.ParseInt(digits[1:], 16, 64)
-		} else {
-			n, err = strconv.ParseInt(digits, 10, 64)
+			base = 16
+			digits = digits[1:]
 		}
 
+		n, err = strconv.ParseInt(digits, base, 64)
 		if err == nil {
 			// ignore null char, legacy override, out of range or lone surrogates
 			if n == 0 || (n >= 0x80 && n <= 0x9F) || n > utf8.MaxRune || (n >= 0xD800 && n <= 0xDFFF) {
@@ -145,26 +147,21 @@ func SetUnixLbr(b bool) {
 
 func htmlEntitiesToText(htmlEntsText string, hrefContext bool) string {
 	outBuf := bytes.NewBufferString("")
-	inEnt := false
+	entSkip := 0
 
 	for i, r := range htmlEntsText {
-		switch {
-		case r == ';' && inEnt:
-			inEnt = false
+		if entSkip > 0 {
+			entSkip -= len(string(r))
 			continue
+		}
 
+		switch {
 		case r == '&': //possible html entity
-			start := i + 1
-			end := start
+			m := entityRE.FindStringSubmatch(htmlEntsText[i+1:])
 
-			for end < len(htmlEntsText) && end-start < 10 && htmlEntsText[end] != ';' {
-				end++
-			}
+			if len(m) == 2 {
+				entName := m[1]
 
-			isEnt := end < len(htmlEntsText) && htmlEntsText[end] == ';'
-			entName := htmlEntsText[start:end]
-
-			if isEnt {
 				if ent, isEnt := parseHTMLEntity(entName); isEnt {
 					for _, er := range ent {
 						if !hrefContext && isCollapsibleWhitespace(er) {
@@ -173,18 +170,16 @@ func htmlEntitiesToText(htmlEntsText string, hrefContext bool) string {
 							outBuf.WriteRune(er)
 						}
 					}
-					inEnt = true
+					entSkip = len(m[0])
 					continue
 				}
 			}
 		}
 
-		if !inEnt {
-			if !hrefContext && isCollapsibleWhitespace(r) {
-				writeSpace(outBuf)
-			} else {
-				outBuf.WriteRune(r)
-			}
+		if !hrefContext && isCollapsibleWhitespace(r) {
+			writeSpace(outBuf)
+		} else {
+			outBuf.WriteRune(r)
 		}
 	}
 
@@ -306,7 +301,7 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 
 	inLen := len(html)
 	tagStart := 0
-	inEnt := false
+	entSkip := 0
 	var badTagStack []string // stack of open tag names for <head>, <script>, <style>, <a>
 	shouldOutput := true
 	hrefs := []string{}     // maintain a stack of sanitized <a> tag href links with html entities decoded
@@ -318,6 +313,11 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 	outBuf := bytes.NewBufferString("")
 
 	for i, r := range html {
+		if entSkip > 0 {
+			entSkip -= len(string(r))
+			continue
+		}
+
 		if inLen > 0 && i == inLen-1 {
 			// prevent new line at the end of the document
 			canPrintNewline = false
@@ -326,40 +326,22 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 		switch {
 		case isIgnoredChar(r):
 			continue
+
 		// new lines and spaces adding a single space if not there yet
 		case isCollapsibleWhitespace(r):
-			if shouldOutput && len(badTagStack) == 0 && !inEnt {
+			if shouldOutput && len(badTagStack) == 0 {
 				if !isSpace(r) || !opts.keepSpaces {
 					writeSpace(outBuf)
 					continue
 				}
 			}
 
-		case r == ';' && inEnt: // end of html entity
-			inEnt = false
-			continue
-
 		case r == '&' && shouldOutput: // possible html entity
-			entName := ""
-			isEnt := false
+			m := entityRE.FindStringSubmatch(html[i+1:])
 
-			// parse the entity name - max 10 chars
-			chars := 0
-			for _, er := range html[i+1:] {
-				if er == ';' {
-					isEnt = true
-					break
-				} else {
-					entName += string(er)
-				}
+			if len(m) == 2 {
+				entName := m[1]
 
-				chars++
-				if chars == 10 {
-					break
-				}
-			}
-
-			if isEnt {
 				if ent, isEnt := parseHTMLEntity(entName); isEnt {
 					for _, er := range ent {
 						if isIgnoredChar(er) {
@@ -369,7 +351,7 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 							outBuf.WriteRune(er)
 						}
 					}
-					inEnt = true
+					entSkip = len(m[0])
 					continue
 				}
 			}
@@ -499,7 +481,7 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 
 		} // switch end
 
-		if shouldOutput && len(badTagStack) == 0 && !inEnt {
+		if shouldOutput && len(badTagStack) == 0 {
 			canPrintNewline = true
 			outBuf.WriteRune(r)
 		}

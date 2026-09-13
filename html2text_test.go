@@ -109,6 +109,7 @@ func TestHTML2Text(t *testing.T) {
 			So(HTML2TextWithOptions(`click <a href="./filenamewith  spaces">here</a>`, WithLinksInnerText()), ShouldEqual, "click here <./filenamewith  spaces>")
 			So(HTML2TextWithOptions(`click <a href="ents/control&#9;char">here</a>`, WithLinksInnerText()), ShouldEqual, "click here <ents/controlchar>")
 			So(HTML2Text(`<a href="http://example.com/`+"\r\nBcc: victim@example.com"+`">link</a>`), ShouldEqual, "http://example.com/Bcc: victim@example.com")
+			So(HTML2Text(`<a href="http&#58//example.com">link</a>`), ShouldEqual, "http://example.com")
 		})
 
 		Convey("Full HTML structure", func() {
@@ -178,6 +179,11 @@ func TestHTML2Text(t *testing.T) {
 				So(HTML2Text(`<a href="file:///etc/passwd">click</a>`), ShouldEqual, "")
 				So(HTML2Text(`<a href="FILE:///etc/passwd">click</a>`), ShouldEqual, "")
 				So(HTML2Text(`<a href="blob:http://example.com/uuid">click</a>`), ShouldEqual, "")
+			})
+
+			Convey("URLs with unterminated entities are parsed", func() {
+				So(HTML2Text(`<a href="javascript&#58alert(1)">click</a>`), ShouldEqual, "")
+				So(HTML2Text(`<a href="javascript&#00000000058;alert(1)">click</a>`), ShouldEqual, "")
 			})
 
 			Convey("WithLinksInnerText suppresses dangerous schemes but keeps inner text", func() {
