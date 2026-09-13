@@ -159,6 +159,15 @@ func TestHTML2Text(t *testing.T) {
 			So(HTML2Text(`<aa x="1">hello</aa>`), ShouldEqual, "hello")
 		})
 
+		Convey("HTML comments", func() {
+			So(HTML2Text(`<!-- comment > secret_internal_note -->visible`), ShouldEqual, "visible")
+			So(HTML2Text(`before<!-- comment -->after`), ShouldEqual, "beforeafter")
+			So(HTML2Text(`<!-- full comment -->`), ShouldEqual, "")
+			So(HTML2Text(`<!-- comment <!-- nested? -->end`), ShouldEqual, "end")
+			So(HTML2Text(`<div>text<!-- comment -->more</div>`), ShouldEqual, "textmore")
+			So(HTML2Text(`start<!-- never ended`), ShouldEqual, "start")
+		})
+
 		Convey("Keep spaces as they are", func() {
 			So(HTML2TextWithOptions("should not    ignore spaces", WithKeepSpaces()), ShouldEqual, "should not    ignore spaces")
 		})

@@ -301,7 +301,6 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 
 	inLen := len(html)
 	tagStart := 0
-	entSkip := 0
 	var badTagStack []string // stack of open tag names for <head>, <script>, <style>, <a>
 	shouldOutput := true
 	hrefs := []string{}     // maintain a stack of sanitized <a> tag href links with html entities decoded
@@ -309,14 +308,15 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 	// new line cannot be printed at the beginning or
 	// for <p> after a new line created by previous <p></p>
 	canPrintNewline := false
+	skipUntil := -1 // byte index until which to skip content (used for HTML comments)
 
 	outBuf := bytes.NewBufferString("")
 
 	for i, r := range html {
-		if entSkip > 0 {
-			entSkip -= len(string(r))
+		if skipUntil >= 0 && i < skipUntil {
 			continue
 		}
+		skipUntil = -1
 
 		if inLen > 0 && i == inLen-1 {
 			// prevent new line at the end of the document
@@ -351,7 +351,7 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 							outBuf.WriteRune(er)
 						}
 					}
-					entSkip = len(m[0])
+					skipUntil = i + len(m[0]) + 1
 					continue
 				}
 			}
@@ -377,6 +377,18 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 		case r == '<': // start of a tag
 			if tagQuoteChar != 0 {
 				continue // inside attribute quotes, not a real tag start
+			}
+			// Check for HTML comments <!-- ... -->
+			if i+3 < inLen && html[i:i+4] == "<!--" {
+				closeIdx := strings.Index(html[i+4:], "-->")
+				if closeIdx >= 0 {
+					// Skip over the entire comment including -->
+					skipUntil = i + 4 + closeIdx + 3
+				} else {
+					// No closing --> found; skip rest of input
+					skipUntil = inLen
+				}
+				continue
 			}
 			tagStart = i + 1
 			shouldOutput = false
