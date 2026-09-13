@@ -427,7 +427,7 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 
 				if len(hrefs) > 0 {
 					last := len(hrefs) - 1
-					if hrefs[last] != "" {
+					if hrefs[last] != "" && len(badTagStack) == 0 {
 						if opts.linksInnerText {
 							outBuf.WriteString(" <")
 							outBuf.WriteString(hrefs[last])

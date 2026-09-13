@@ -370,5 +370,11 @@ func TestHTML2Text(t *testing.T) {
 				So(HTML2Text(`"Quotes" in 'normal' text works as expected`), ShouldEqual, `"Quotes" in 'normal' text works as expected`)
 			})
 		})
+
+		Convey("Fix: Anchor tags in suppressed blocks won't produce output", func() {
+			So(HTML2Text(`<head><a href="http://secret.internal/token=XYZ">link</a></head>visible`), ShouldEqual, "visible")
+			So(HTML2Text(`<script>var a='<a href="https://auth.internal/admin?secret=123">link</a>';</script>visible`), ShouldEqual, "visible")
+			So(HTML2TextWithOptions(`<head><a href="http://secret.internal">link</a></head>visible`, WithLinksInnerText()), ShouldEqual, "visible")
+		})
 	})
 }
