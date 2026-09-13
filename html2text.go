@@ -21,8 +21,8 @@ var (
 	legacyLBR             = WIN_LBR
 	badTagnamesRE         = regexp.MustCompile(`^(head|script|style)$`)
 	hrefAttrRE            = regexp.MustCompile(`(?i)[ \t\n\r\f]href\s*=\s*('([^']*?)'|"([^"]*?)"|([^\s"'` + "`" + `=<>]+))`)
-	headersRE             = regexp.MustCompile(`^(\/)?h[1-6]`)
 	entityRE              = regexp.MustCompile(`(?i)^(#(?:x[a-f0-9]+|[0-9]+)|[a-zA-Z]{1,32});?`)
+	headersRE             = regexp.MustCompile(`^(\/)?h[1-6]$`)
 	numericEntityRE       = regexp.MustCompile(`(?i)^#(x?[a-f0-9]+)`)
 	defaultAllowedSchemes = []string{"http", "https", "mailto", "tel", "sms"}
 )
