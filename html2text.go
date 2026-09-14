@@ -82,7 +82,7 @@ func WithKeepSpaces() Option {
 
 // WithAllowedURLSchemes restricts valid URL schemes (example: []string{"http", "https", "mailto"}).
 // URLs with invalid schemes are ignored.
-// If this option is not used, default allowed schemes are http, https, and mailto.
+// If this option is not used, default allowed schemes are http, https, mailto, tel and sms.
 func WithAllowedURLSchemes(s []string) Option {
 	return func(o *options) {
 		o.allowedSchemes = s

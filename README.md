@@ -1,22 +1,24 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/k3a/html2text.svg)](https://pkg.go.dev/github.com/k3a/html2text)
 [![test](https://github.com/k3a/html2text/actions/workflows/test.yml/badge.svg?branch=master)](https://github.com/k3a/html2text/actions/workflows/test.yml)
 [![coverage](https://raw.githubusercontent.com/k3a/html2text/badges/.badges/master/coverage.svg)](https://github.com/k3a/html2text/tree/badges)
-[![Report Card](https://goreportcard.com/badge/github.com/k3a/html2text)](https://goreportcard.com/report/github.com/k3a/html2text)
 
 # html2text
 
-A simple Golang package to convert HTML to plain text (without non-standard dependencies).
+A simple Golang package to convert HTML to plain text, with no external dependencies.
+It processes input character-by-character in a single pass, with occasional forward lookups (e.g., for HTML entities).
 
-It converts HTML tags to text and also parses HTML entities into characters they represent.
-A `<head>` section of the HTML document, as well as most other tags are stripped out but 
-links are properly converted into their href attribute.
+The conversion:
 
-It can be used for converting HTML emails into text.
+- Strips out the <head> section, along with <style> and <script> tags.
+- Converts HTML tags to plain text and parses HTML entities into the characters they represent.
+- Converts links into their href attribute, or to the `inner text <link>` format when the `WithLinksInnerText` option is enabled.
 
-Some tests are installed as well.
-Uses semantic versioning and no breaking changes are planned.
+The primary use case is converting HTML emails into plain text.
 
-Fell free to publish a pull request if you have suggestions for improvement but please note that the library can now be considered feature-complete and API stable. If you need more than this basic conversion, please use an alternative mentioned at the bottom.
+The package includes a comprehensive test suite in html2text_test.go.
+It follows semantic versioning, and no breaking changes are planned.
+
+Feel free to submit a pull request with suggestions for improvement. However, please note that the library is now considered feature-complete and API‑stable. If you require more advanced functionality or need to regularly process malformed HTML input, you should consider using an alternative package listed below.
 
 ## Install
 ```bash
@@ -50,11 +52,10 @@ func main() {
 
 Note: The output is plain text, do not embed the result back into HTML without escaping.
 
-To see all features, please look info `html2text_test.go`.
+To see all features in action, take a look at [html2text_test.go](html2text_test.go).
 
 ## Alternatives
-- https://github.com/jaytaylor/html2text (heavier, with more features)
-- https://git.sr.ht/~aw/nanohtml2text (rewrite of this module in Rust)
+- https://github.com/jaytaylor/html2text (heavier, with more features, uses [golang.org/x/net/html parser](https://pkg.go.dev/golang.org/x/net/html))
 
 ## License
 
