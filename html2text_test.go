@@ -87,7 +87,6 @@ func TestHTML2Text(t *testing.T) {
 				ShouldEqual, "would you pay in ¢, £, ¥ or €?")
 			So(HTML2Text(`Tom & Jerry is not an entity`), ShouldEqual, "Tom & Jerry is not an entity")
 			So(HTML2Text(`this &neither; as you see`), ShouldEqual, "this &neither; as you see")
-			So(HTML2Text(`list of items<ul><li>One</li><li>Two</li><li>Three</li></ul>`), ShouldEqual, "list of items\r\nOne\r\nTwo\r\nThree\r\n")
 			So(HTML2Text(`fish &amp; chips`), ShouldEqual, "fish & chips")
 			So(HTML2Text(`&quot;I'm sorry, Dave. I'm afraid I can't do that.&quot; – HAL, 2001: A Space Odyssey`), ShouldEqual, "\"I'm sorry, Dave. I'm afraid I can't do that.\" – HAL, 2001: A Space Odyssey")
 			So(HTML2Text(`Google &reg;`), ShouldEqual, "Google ®")
@@ -138,17 +137,11 @@ func TestHTML2Text(t *testing.T) {
 			So(HTML2TextWithOptions(`<p>two</p><p>paragraphs</p>`), ShouldEqual, "two\r\n\r\nparagraphs")
 		})
 
-		Convey("No list support by default (original behavior)", func() {
+		Convey("List items separated by new lines (original behavior)", func() {
 			So(HTML2Text(`list of items<ul><li>One</li><li>Two</li><li>Three</li></ul>`), ShouldEqual, "list of items\r\nOne\r\nTwo\r\nThree\r\n")
 		})
 
-		Convey("Tags with attributes", func() {
-			So(HTML2Text(`list of items<ul><li class="menu-item">One</li><li class="menu-item">Two</li><li class="menu-item">Three</li></ul>`), ShouldEqual, "list of items\r\nOne\r\nTwo\r\nThree\r\n")
-			So(HTML2Text(`list of items<ol><li class="menu-item">One</li><li class="menu-item">Two</li><li class="menu-item">Three</li></ol>`), ShouldEqual, "list of items\r\nOne\r\nTwo\r\nThree\r\n")
-			So(HTML2Text(`<p class="content">content</p><div id="status">is ok</div>`), ShouldEqual, "content\r\n\r\nis ok")
-		})
-
-		Convey("Optional list support", func() {
+		Convey("List items having a dash pre-fixed", func() {
 			So(HTML2TextWithOptions(`list of items<ul><li>One</li><li>Two</li><li>Three</li></ul>`, WithListSupport()), ShouldEqual, "list of items\r\n - One\r\n - Two\r\n - Three\r\n")
 			So(HTML2TextWithOptions(`list of items<ol><li>One</li><li>Two</li><li>Three</li></ol>`, WithListSupport()), ShouldEqual, "list of items\r\n - One\r\n - Two\r\n - Three\r\n")
 		})
@@ -157,6 +150,12 @@ func TestHTML2Text(t *testing.T) {
 			So(HTML2Text(`<aa>hello</aa>`), ShouldEqual, "hello")
 			So(HTML2Text(`<aa >hello</aa>`), ShouldEqual, "hello")
 			So(HTML2Text(`<aa x="1">hello</aa>`), ShouldEqual, "hello")
+		})
+
+		Convey("Tags with attributes", func() {
+			So(HTML2Text(`list of items<ul><li class="menu-item">One</li><li class="menu-item">Two</li><li class="menu-item">Three</li></ul>`), ShouldEqual, "list of items\r\nOne\r\nTwo\r\nThree\r\n")
+			So(HTML2Text(`list of items<ol><li class="menu-item">One</li><li class="menu-item">Two</li><li class="menu-item">Three</li></ol>`), ShouldEqual, "list of items\r\nOne\r\nTwo\r\nThree\r\n")
+			So(HTML2Text(`<p class="content">content</p><div id="status">is ok</div>`), ShouldEqual, "content\r\n\r\nis ok")
 		})
 
 		Convey("HTML comments", func() {
