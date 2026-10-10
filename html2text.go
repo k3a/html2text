@@ -335,7 +335,7 @@ func HTML2TextWithOptions(html string, reqOpts ...Option) string {
 				}
 			}
 
-		case r == '&' && shouldOutput: // possible html entity
+		case r == '&' && shouldOutput && len(badTagStack) == 0: // possible html entity
 			m := entityRE.FindStringSubmatch(html[i+1:])
 
 			if len(m) == 2 {
