@@ -104,6 +104,33 @@ func TestHTML2Text(t *testing.T) {
 			So(HTML2Text(`space entities&#x20;&#x20;collapsed correctly`), ShouldEqual, "space entities collapsed correctly")
 		})
 
+		Convey("Entities in suppressed content", func() {
+			for _, text := range []string{
+				`<html><head><title>&amp;&#65;</title></head><body>visible</body></html>`,
+				`<head><title>&#32;&nbsp;</title></head>visible`,
+				`<script>var text = "&amp;&#65;";</script>visible`,
+				`<style>p::before { content: "&amp;&#65;"; }</style>visible`,
+				`<head><style>p::before { content: "&#65;"; }</style><title>&amp;</title></head>visible`,
+			} {
+				So(HTML2Text(text), ShouldEqual, "visible")
+				So(HTML2TextWithOptions(text, WithLinksInnerText()), ShouldEqual, "visible")
+			}
+			So(HTML2Text(`before<script>var text = "&amp;&#65;";</script>after`), ShouldEqual, "beforeafter")
+			So(HTML2Text(`before<style>p::before { content: "&amp;&#65;"; }</style>after`), ShouldEqual, "beforeafter")
+		})
+
+		Convey("Entities in anchor text", func() {
+			So(HTML2Text(`<a href="/one">Tom &amp; Jerry &#65;</a>`), ShouldEqual, "/one")
+			So(HTML2Text(`<a href="/one?x=1&amp;y=2">Tom &amp; Jerry</a>`), ShouldEqual, "/one?x=1&y=2")
+			So(HTML2Text(`<a>Tom &amp; Jerry</a>`), ShouldEqual, "")
+			So(HTML2Text(`<a href="javascript:void(0)">&#65;&amp;</a>`), ShouldEqual, "")
+			So(HTML2TextWithOptions(`<a href="/one">Tom &amp; Jerry &#65;</a>`, WithLinksInnerText()), ShouldEqual, "Tom & Jerry A </one>")
+			So(HTML2TextWithOptions(`<a href="/one?x=1&amp;y=2">Tom &amp; Jerry</a>`, WithLinksInnerText()), ShouldEqual, "Tom & Jerry </one?x=1&y=2>")
+			So(HTML2TextWithOptions(`<a>Tom &amp; Jerry</a>`, WithLinksInnerText()), ShouldEqual, "Tom & Jerry")
+			So(HTML2TextWithOptions(`<a href="javascript:void(0)">&#65;&amp;</a>`, WithLinksInnerText()), ShouldEqual, "A&")
+			So(HTML2Text(`before &amp; <a href="/one">&#65;</a> after &amp;`), ShouldEqual, "before & /one after &")
+		})
+
 		Convey("HTML Entities in hrefs", func() {
 			So(HTML2TextWithOptions(`click <a href="./filenamewith  spaces">here</a>`, WithLinksInnerText()), ShouldEqual, "click here <./filenamewith  spaces>")
 			So(HTML2TextWithOptions(`click <a href="ents/control&#9;char">here</a>`, WithLinksInnerText()), ShouldEqual, "click here <ents/controlchar>")
